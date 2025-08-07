@@ -125,7 +125,7 @@ defmodule ReoxtWeb.GraphLive do
   def render(assigns) do
     ~H"""
     <div class="container mx-auto px-4 py-6">
-      <h1 class="text-4xl font-bold mb-8 text-center neon-pulse" style="color: #39ff14; text-shadow: 0 0 20px #39ff14;">
+      <h1 class="text-4xl font-bold mb-8 text-center" style="color: #bf40ff; text-shadow: 0 0 20px #bf40ff;">
         Bitcoin Transaction Graph
       </h1>
 
@@ -228,14 +228,14 @@ defmodule ReoxtWeb.GraphLive do
         <div class="lg:col-span-3">
           <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
             <div class="p-4 border-b border-gray-700">
-              <h2 class="text-lg font-semibold" style="color: #00ffff;">Transaction Network</h2>
+              <h2 class="text-lg font-semibold" style="color: #00d4ff;">Transaction Network</h2>
             </div>
             <div class="p-4">
               <div
                 id="graph-container"
                 phx-hook="GraphVisualization"
                 class="w-full h-[600px] rounded-lg"
-                style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a); border: 2px solid rgba(57, 255, 20, 0.3);"
+                style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a); border: 2px solid rgba(191, 64, 255, 0.3);"
               >
                 <%= if @loading do %>
                   <div class="flex items-center justify-center h-full">
@@ -267,23 +267,23 @@ defmodule ReoxtWeb.GraphLive do
           <!-- Graph Statistics -->
           <%= if @graph_data do %>
             <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
-              <h3 class="text-lg font-semibold mb-3" style="color: #00ffff;">Graph Statistics</h3>
+              <h3 class="text-lg font-semibold mb-3" style="color: #00d4ff;">Graph Statistics</h3>
               <div class="space-y-2 text-sm">
                 <div class="flex justify-between text-gray-300">
                   <span>Transactions:</span>
-                  <span class="font-medium neon-pulse"><%= @graph_stats.transaction_count || 0 %></span>
+                  <span class="font-medium" style="color: #bf40ff;"><%= @graph_stats.transaction_count || 0 %></span>
                 </div>
                 <div class="flex justify-between text-gray-300">
                   <span>Connections:</span>
-                  <span class="font-medium neon-pulse"><%= @graph_stats.edge_count || 0 %></span>
+                  <span class="font-medium" style="color: #bf40ff;"><%= @graph_stats.edge_count || 0 %></span>
                 </div>
                 <div class="flex justify-between text-gray-300">
                   <span>Total Value:</span>
-                  <span class="font-medium neon-pulse"><%= @graph_stats.total_value || "0" %> BTC</span>
+                  <span class="font-medium" style="color: #bf40ff;"><%= @graph_stats.total_value || "0" %> BTC</span>
                 </div>
                 <div class="flex justify-between text-gray-300">
                   <span>Avg. Confirmations:</span>
-                  <span class="font-medium neon-pulse"><%= @graph_stats.avg_confirmations || 0 %></span>
+                  <span class="font-medium" style="color: #bf40ff;"><%= @graph_stats.avg_confirmations || 0 %></span>
                 </div>
               </div>
             </div>
@@ -332,22 +332,22 @@ defmodule ReoxtWeb.GraphLive do
 
           <!-- Legend -->
           <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
-            <h3 class="text-lg font-semibold mb-3" style="color: #ff1493;">Legend</h3>
+            <h3 class="text-lg font-semibold mb-3" style="color: #1e90ff;">Legend</h3>
             <div class="space-y-2 text-sm">
               <div class="flex items-center">
-                <div class="w-3 h-3 rounded-full mr-2" style="background: #ff1493; box-shadow: 0 0 8px #ff1493;"></div>
+                <div class="w-3 h-3 rounded-full mr-2" style="background: #1e90ff; box-shadow: 0 0 8px #1e90ff;"></div>
                 <span class="text-gray-300">Unconfirmed</span>
               </div>
               <div class="flex items-center">
-                <div class="w-3 h-3 rounded-full mr-2" style="background: #39ff14; box-shadow: 0 0 8px #39ff14;"></div>
+                <div class="w-3 h-3 rounded-full mr-2" style="background: #bf40ff; box-shadow: 0 0 8px #bf40ff;"></div>
                 <span class="text-gray-300">High Value (&gt;1 BTC)</span>
               </div>
               <div class="flex items-center">
-                <div class="w-3 h-3 rounded-full mr-2" style="background: #00ffff; box-shadow: 0 0 8px #00ffff;"></div>
+                <div class="w-3 h-3 rounded-full mr-2" style="background: #00d4ff; box-shadow: 0 0 8px #00d4ff;"></div>
                 <span class="text-gray-300">Low Confirmations</span>
               </div>
               <div class="flex items-center">
-                <div class="w-3 h-3 rounded-full mr-2" style="background: #bf00ff; box-shadow: 0 0 8px #bf00ff;"></div>
+                <div class="w-3 h-3 rounded-full mr-2" style="background: #8a2be2; box-shadow: 0 0 8px #8a2be2;"></div>
                 <span class="text-gray-300">Normal</span>
               </div>
             </div>
