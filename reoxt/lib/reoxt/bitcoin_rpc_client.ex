@@ -108,35 +108,33 @@ defmodule Reoxt.BitcoinRpcClient do
   defp rpc_call(method, params, config) do
     url = "http://#{config.host}:#{config.port}/"
     
-    auth_header = "Basic " <> Base.encode64("#{config.username}:#{config.password}")
+    auth = [username: config.username, password: config.password]
     
-    body = Jason.encode!(%{
+    body = %{
       "jsonrpc" => "1.0",
       "id" => "reoxt",
       "method" => method,
       "params" => params
-    })
+    }
 
-    headers = [
-      {"Content-Type", "application/json"},
-      {"Authorization", auth_header}
-    ]
-
-    case HTTPoison.post(url, body, headers, recv_timeout: 30_000) do
-      {:ok, %{status_code: 200, body: response_body}} ->
-        case Jason.decode(response_body) do
-          {:ok, %{"error" => nil, "result" => result}} ->
+    case Req.post(url, 
+                  json: body, 
+                  auth: auth,
+                  receive_timeout: 30_000) do
+      {:ok, %{status: 200, body: response_body}} ->
+        case response_body do
+          %{"error" => nil, "result" => result} ->
             {:ok, result}
-          {:ok, %{"error" => error}} ->
+          %{"error" => error} ->
             {:error, error}
-          {:error, decode_error} ->
-            {:error, {:json_decode_error, decode_error}}
+          _ ->
+            {:error, {:invalid_response, response_body}}
         end
 
-      {:ok, %{status_code: status_code, body: body}} ->
+      {:ok, %{status: status_code, body: body}} ->
         {:error, {:http_error, status_code, body}}
 
-      {:error, %{reason: reason}} ->
+      {:error, reason} ->
         {:error, {:connection_error, reason}}
     end
   end
