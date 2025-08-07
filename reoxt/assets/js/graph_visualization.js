@@ -146,30 +146,28 @@ const GraphVisualization = {
       this.graphNodes.set(node.id, node);
     });
 
-    // Process and merge new links
-    const newLinks = graphData.edges.map(edge => {
+    // Process and merge new links - avoid duplicates by checking both directions
+    const processedLinks = new Map();
+    
+    graphData.edges.forEach(edge => {
       const linkId = `${edge.from}-${edge.to}`;
-      const existingLink = this.graphLinks.get(linkId);
-      if (existingLink) {
-        return {
-          ...existingLink,
+      const reverseLinkId = `${edge.to}-${edge.from}`;
+      
+      // Only add if we haven't seen this link in either direction
+      if (!processedLinks.has(linkId) && !processedLinks.has(reverseLinkId)) {
+        processedLinks.set(linkId, {
           source: edge.from,
           target: edge.to,
-          value: edge.value || 1
-        };
-      } else {
-        return {
-          source: edge.from,
-          target: edge.to,
-          value: edge.value || 1
-        };
+          value: edge.value || 1,
+          type: edge.type || 'default'
+        });
       }
     });
 
-    // Update the links map
-    newLinks.forEach(link => {
-      const linkId = `${link.source}-${link.target}`;
-      this.graphLinks.set(linkId, link);
+    // Update the links map with processed links
+    this.graphLinks.clear(); // Clear and rebuild to avoid stale data
+    processedLinks.forEach((link, id) => {
+      this.graphLinks.set(id, link);
     });
 
     // Convert maps to arrays for D3
@@ -178,53 +176,44 @@ const GraphVisualization = {
 
     console.log("Total nodes in dataset:", nodes.length);
     console.log("Total links in dataset:", links.length);
+    console.log("Processed links:", links);
 
-    // Update links with proper enter/update/exit pattern
-    const linkSelection = this.linkGroup
+    // Clear existing links and nodes to force re-render
+    this.linkGroup.selectAll("line").remove();
+    this.nodeGroup.selectAll("g").remove();
+
+    // Create links
+    const linkElements = this.linkGroup
       .selectAll("line")
-      .data(links, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
-
-    // Remove old links
-    linkSelection.exit().remove();
-
-    // Add new links
-    const linkEnter = linkSelection.enter()
+      .data(links)
+      .enter()
       .append("line")
       .attr("stroke", "#39ff14")
       .attr("stroke-opacity", 0.7)
       .attr("stroke-width", d => Math.max(Math.sqrt(d.value) || 1, 2))
       .style("filter", "drop-shadow(0 0 4px #39ff14)");
 
-    // Update existing links
-    const linkUpdate = linkEnter.merge(linkSelection)
-      .attr("stroke-width", d => Math.max(Math.sqrt(d.value) || 1, 2));
-
-    // Update nodes with proper enter/update/exit pattern
-    const nodeSelection = this.nodeGroup
+    // Create nodes
+    const nodeElements = this.nodeGroup
       .selectAll("g")
-      .data(nodes, d => d.id);
-
-    // Remove old nodes
-    nodeSelection.exit().remove();
-
-    // Add new nodes
-    const nodeEnter = nodeSelection.enter()
+      .data(nodes)
+      .enter()
       .append("g")
       .attr("class", "node")
       .call(this.drag(this.simulation));
 
-    console.log("Created new node groups:", nodeEnter.size());
+    console.log("Created new node groups:", nodeElements.size());
 
-    // Add circles for new nodes
-    nodeEnter.append("circle")
+    // Add circles for nodes
+    nodeElements.append("circle")
       .attr("r", d => this.getNodeRadius(d))
       .attr("fill", d => this.getNodeColor(d))
       .attr("stroke", d => this.getNodeStrokeColor(d))
       .attr("stroke-width", 3)
       .style("filter", d => `drop-shadow(0 0 8px ${this.getNodeColor(d)})`);
 
-    // Add labels for new nodes
-    nodeEnter.append("text")
+    // Add labels for nodes
+    nodeElements.append("text")
       .attr("dx", 12)
       .attr("dy", ".35em")
       .style("font-size", "11px")
@@ -233,30 +222,17 @@ const GraphVisualization = {
       .style("text-shadow", "0 0 4px rgba(57, 255, 20, 0.3)")
       .text(d => d.txid.substring(0, 8) + "...");
 
-    // Add tooltips for new nodes
-    nodeEnter.append("title")
+    // Add tooltips for nodes
+    nodeElements.append("title")
       .text(d => `TX: ${d.txid}\nValue: ${this.formatValue(d.total_output_value || 0)} BTC\nConfirmations: ${this.getConfirmations(d)}`);
 
-    // Update existing nodes
-    const nodeUpdate = nodeEnter.merge(nodeSelection);
-
-    // Update circles for all nodes (new and existing)
-    nodeUpdate.select("circle")
-      .attr("r", d => this.getNodeRadius(d))
-      .attr("fill", d => this.getNodeColor(d))
-      .attr("stroke", d => this.getNodeStrokeColor(d));
-
-    // Update tooltips for all nodes
-    nodeUpdate.select("title")
-      .text(d => `TX: ${d.txid}\nValue: ${this.formatValue(d.total_output_value || 0)} BTC\nConfirmations: ${this.getConfirmations(d)}`);
-
-    console.log("Total active nodes:", nodeUpdate.size());
+    console.log("Total active nodes:", nodeElements.size());
 
     // Update simulation with new data
     this.simulation
       .nodes(nodes)
       .on("tick", () => {
-        linkUpdate
+        linkElements
           .attr("x1", d => {
             const source = d.source.id ? d.source : nodes.find(n => n.id === d.source);
             return source ? source.x : 0;
@@ -274,7 +250,7 @@ const GraphVisualization = {
             return target ? target.y : 0;
           });
 
-        nodeUpdate
+        nodeElements
           .attr("transform", d => `translate(${d.x},${d.y})`);
       });
 
