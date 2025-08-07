@@ -1,5 +1,6 @@
 entrypoint = "main.exs"
 run = "elixir main.exs"
+modules = ["nodejs-20"]
 
 [env]
 HEX_HOME = "$REPL_HOME/.hex"
