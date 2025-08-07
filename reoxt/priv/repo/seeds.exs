@@ -1,4 +1,5 @@
 
+
 # Script for populating the database with test transaction data.
 #
 # We create a variety of transaction patterns:
@@ -21,7 +22,7 @@ Repo.delete_all(Transaction)
 IO.puts("Creating genesis transaction...")
 {:ok, genesis} = Transactions.create_transaction_with_details(
   %{
-    txid: "genesis_coinbase_000000000000000000000000000000000000000000000000000000000000",
+    txid: "0000000000000000000000000000000000000000000000000000000000000001",
     block_height: 1,
     timestamp: ~N[2023-01-01 00:00:00],
     fee: 0,
@@ -45,7 +46,7 @@ IO.puts("Creating genesis transaction...")
 IO.puts("Creating simple send transaction...")
 {:ok, simple_send} = Transactions.create_transaction_with_details(
   %{
-    txid: "simple_send_alice_to_bob_1111111111111111111111111111111111111111111111",
+    txid: "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
     block_height: 2,
     timestamp: ~N[2023-01-01 01:00:00],
     fee: 10000, # 0.0001 BTC fee
@@ -84,7 +85,7 @@ IO.puts("Creating simple send transaction...")
 IO.puts("Creating amount split transaction...")
 {:ok, amount_split} = Transactions.create_transaction_with_details(
   %{
-    txid: "amount_split_bob_to_many_222222222222222222222222222222222222222222",
+    txid: "2345678901bcdef02345678901bcdef02345678901bcdef02345678901bcdef0",
     block_height: 3,
     timestamp: ~N[2023-01-01 02:00:00],
     fee: 15000,
@@ -137,7 +138,7 @@ IO.puts("Creating amount split transaction...")
 IO.puts("Creating consolidation transaction...")
 {:ok, consolidation} = Transactions.create_transaction_with_details(
   %{
-    txid: "consolidation_many_to_frank_33333333333333333333333333333333333333333",
+    txid: "3456789012cdef013456789012cdef013456789012cdef013456789012cdef01",
     block_height: 4,
     timestamp: ~N[2023-01-01 03:00:00],
     fee: 25000,
@@ -183,7 +184,7 @@ IO.puts("Creating consolidation transaction...")
 IO.puts("Creating chain continuation transaction...")
 {:ok, chain_continue} = Transactions.create_transaction_with_details(
   %{
-    txid: "chain_continue_frank_to_grace_444444444444444444444444444444444444444",
+    txid: "456789013def0234456789013def0234456789013def0234456789013def0234",
     block_height: 5,
     timestamp: ~N[2023-01-01 04:00:00],
     fee: 12000,
@@ -222,7 +223,7 @@ IO.puts("Creating chain continuation transaction...")
 IO.puts("Creating multi-sig transaction...")
 {:ok, multisig_tx} = Transactions.create_transaction_with_details(
   %{
-    txid: "multisig_transaction_555555555555555555555555555555555555555555555",
+    txid: "56789014ef023445656789014ef023445656789014ef023445656789014ef0234",
     block_height: 6,
     timestamp: ~N[2023-01-01 05:00:00],
     fee: 20000,
@@ -254,7 +255,7 @@ IO.puts("Creating multi-sig transaction...")
 IO.puts("Creating fan-out transaction...")
 {:ok, fanout_tx} = Transactions.create_transaction_with_details(
   %{
-    txid: "fanout_pattern_666666666666666666666666666666666666666666666666",
+    txid: "6789015f023456676789015f023456676789015f023456676789015f02345667",
     block_height: 7,
     timestamp: ~N[2023-01-01 06:00:00],
     fee: 30000,
@@ -296,7 +297,7 @@ IO.puts("Creating additional isolated transactions...")
 # Another coinbase transaction (different block)
 {:ok, coinbase2} = Transactions.create_transaction_with_details(
   %{
-    txid: "coinbase2_block8_777777777777777777777777777777777777777777777777",
+    txid: "789016f0234567789016f0234567789016f0234567789016f0234567789016f0",
     block_height: 8,
     timestamp: ~N[2023-01-01 07:00:00],
     fee: 0,
@@ -319,7 +320,7 @@ IO.puts("Creating additional isolated transactions...")
 # Cross-chain reference: Use output from fanout in new transaction
 {:ok, cross_chain} = Transactions.create_transaction_with_details(
   %{
-    txid: "cross_chain_ref_888888888888888888888888888888888888888888888888",
+    txid: "89017f023456789017f023456789017f023456789017f023456789017f0234567",
     block_height: 9,
     timestamp: ~N[2023-01-01 08:00:00],
     fee: 18000,
@@ -371,7 +372,7 @@ IO.puts("Creating additional isolated transactions...")
 # Circular reference pattern: Create a more complex graph
 {:ok, circular1} = Transactions.create_transaction_with_details(
   %{
-    txid: "circular_part1_999999999999999999999999999999999999999999999999",
+    txid: "9018f023456789018f023456789018f023456789018f023456789018f0234567",
     block_height: 10,
     timestamp: ~N[2023-01-01 09:00:00],
     fee: 15000,
@@ -408,7 +409,7 @@ IO.puts("Creating additional isolated transactions...")
 
 {:ok, circular2} = Transactions.create_transaction_with_details(
   %{
-    txid: "circular_part2_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    txid: "a019f023456789a019f023456789a019f023456789a019f023456789a019f023",
     block_height: 11,
     timestamp: ~N[2023-01-01 10:00:00],
     fee: 12000,
@@ -467,3 +468,4 @@ IO.puts("\nTotal transactions: #{total_transactions}")
 IO.puts("Total inputs: #{total_inputs}")
 IO.puts("Total outputs: #{total_outputs}")
 IO.puts("\nDatabase seeded with comprehensive transaction graph!")
+
