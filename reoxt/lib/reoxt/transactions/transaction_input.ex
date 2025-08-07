@@ -1,0 +1,22 @@
+defmodule Reoxt.Transactions.TransactionInput do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  schema "transaction_inputs" do
+    field :txid, :string
+    field :vout, :integer
+    field :script_sig, :string
+    field :sequence, :integer
+    field :value, :integer
+    field :transaction_id, :id
+
+    timestamps(type: :utc_datetime)
+  end
+
+  @doc false
+  def changeset(transaction_input, attrs) do
+    transaction_input
+    |> cast(attrs, [:txid, :vout, :script_sig, :sequence, :value])
+    |> validate_required([:txid, :vout, :script_sig, :sequence, :value])
+  end
+end
