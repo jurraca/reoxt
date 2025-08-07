@@ -19,6 +19,10 @@ const GraphVisualization = {
     this.handleEvent("clear_graph", () => {
       this.clearGraph();
     });
+
+    this.handleEvent("reset_graph", () => {
+      this.resetGraph();
+    });
   },
 
   waitForD3(callback) {
@@ -105,62 +109,122 @@ const GraphVisualization = {
     console.log("Number of nodes:", graphData.nodes.length);
     console.log("Number of edges:", graphData.edges.length);
 
-    // Process nodes and links
-    const nodes = graphData.nodes.map(node => ({
-      ...node,
-      id: node.txid,
-      x: Math.random() * (this.width || 800),
-      y: Math.random() * (this.height || 600)
-    }));
+    // Initialize or update the graph dataset
+    if (!this.graphNodes) {
+      this.graphNodes = new Map();
+    }
+    if (!this.graphLinks) {
+      this.graphLinks = new Map();
+    }
 
-    const links = graphData.edges.map(edge => ({
-      source: edge.from,
-      target: edge.to,
-      value: edge.value || 1
-    }));
+    // Process and merge new nodes with existing ones
+    const newNodes = graphData.nodes.map(node => {
+      const existingNode = this.graphNodes.get(node.txid);
+      if (existingNode) {
+        // Update existing node data but preserve position if it exists
+        return {
+          ...existingNode,
+          ...node,
+          id: node.txid,
+          // Keep existing position if available, otherwise random
+          x: existingNode.x !== undefined ? existingNode.x : Math.random() * (this.width || 800),
+          y: existingNode.y !== undefined ? existingNode.y : Math.random() * (this.height || 600)
+        };
+      } else {
+        // New node with random initial position
+        return {
+          ...node,
+          id: node.txid,
+          x: Math.random() * (this.width || 800),
+          y: Math.random() * (this.height || 600)
+        };
+      }
+    });
 
-    // Update links
-    const link = this.linkGroup
+    // Update the nodes map
+    newNodes.forEach(node => {
+      this.graphNodes.set(node.id, node);
+    });
+
+    // Process and merge new links
+    const newLinks = graphData.edges.map(edge => {
+      const linkId = `${edge.from}-${edge.to}`;
+      const existingLink = this.graphLinks.get(linkId);
+      if (existingLink) {
+        return {
+          ...existingLink,
+          source: edge.from,
+          target: edge.to,
+          value: edge.value || 1
+        };
+      } else {
+        return {
+          source: edge.from,
+          target: edge.to,
+          value: edge.value || 1
+        };
+      }
+    });
+
+    // Update the links map
+    newLinks.forEach(link => {
+      const linkId = `${link.source}-${link.target}`;
+      this.graphLinks.set(linkId, link);
+    });
+
+    // Convert maps to arrays for D3
+    const nodes = Array.from(this.graphNodes.values());
+    const links = Array.from(this.graphLinks.values());
+
+    console.log("Total nodes in dataset:", nodes.length);
+    console.log("Total links in dataset:", links.length);
+
+    // Update links with proper enter/update/exit pattern
+    const linkSelection = this.linkGroup
       .selectAll("line")
-      .data(links, d => `${d.source}-${d.target}`);
+      .data(links, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
 
-    link.exit().remove();
+    // Remove old links
+    linkSelection.exit().remove();
 
-    const linkEnter = link.enter()
+    // Add new links
+    const linkEnter = linkSelection.enter()
       .append("line")
       .attr("stroke", "#39ff14")
       .attr("stroke-opacity", 0.7)
       .attr("stroke-width", d => Math.max(Math.sqrt(d.value) || 1, 2))
       .style("filter", "drop-shadow(0 0 4px #39ff14)");
 
-    const linkUpdate = linkEnter.merge(link);
+    // Update existing links
+    const linkUpdate = linkEnter.merge(linkSelection)
+      .attr("stroke-width", d => Math.max(Math.sqrt(d.value) || 1, 2));
 
-    // Update nodes
-    const node = this.nodeGroup
+    // Update nodes with proper enter/update/exit pattern
+    const nodeSelection = this.nodeGroup
       .selectAll("g")
       .data(nodes, d => d.id);
 
-    node.exit().remove();
+    // Remove old nodes
+    nodeSelection.exit().remove();
 
-    const nodeEnter = node.enter()
+    // Add new nodes
+    const nodeEnter = nodeSelection.enter()
       .append("g")
       .attr("class", "node")
       .call(this.drag(this.simulation));
 
-    console.log("Created node groups:", nodeEnter.size());
+    console.log("Created new node groups:", nodeEnter.size());
 
-    // Add circles for nodes
-    const circles = nodeEnter.append("circle")
+    // Add circles for new nodes
+    nodeEnter.append("circle")
       .attr("r", d => this.getNodeRadius(d))
       .attr("fill", d => this.getNodeColor(d))
       .attr("stroke", d => this.getNodeStrokeColor(d))
       .attr("stroke-width", 3)
       .style("filter", d => `drop-shadow(0 0 8px ${this.getNodeColor(d)})`);
 
-    console.log("Created circles:", circles.size());
-
-    // Add labels
-    const labels = nodeEnter.append("text")
+    // Add labels for new nodes
+    nodeEnter.append("text")
       .attr("dx", 12)
       .attr("dy", ".35em")
       .style("font-size", "11px")
@@ -169,36 +233,58 @@ const GraphVisualization = {
       .style("text-shadow", "0 0 4px rgba(57, 255, 20, 0.3)")
       .text(d => d.txid.substring(0, 8) + "...");
 
-    console.log("Created labels:", labels.size());
-
-    // Add tooltips
+    // Add tooltips for new nodes
     nodeEnter.append("title")
       .text(d => `TX: ${d.txid}\nValue: ${this.formatValue(d.total_output_value || 0)} BTC\nConfirmations: ${this.getConfirmations(d)}`);
 
-    const nodeUpdate = nodeEnter.merge(node);
-    console.log("Total nodes after merge:", nodeUpdate.size());
+    // Update existing nodes
+    const nodeUpdate = nodeEnter.merge(nodeSelection);
 
-    // Update simulation
+    // Update circles for all nodes (new and existing)
+    nodeUpdate.select("circle")
+      .attr("r", d => this.getNodeRadius(d))
+      .attr("fill", d => this.getNodeColor(d))
+      .attr("stroke", d => this.getNodeStrokeColor(d));
+
+    // Update tooltips for all nodes
+    nodeUpdate.select("title")
+      .text(d => `TX: ${d.txid}\nValue: ${this.formatValue(d.total_output_value || 0)} BTC\nConfirmations: ${this.getConfirmations(d)}`);
+
+    console.log("Total active nodes:", nodeUpdate.size());
+
+    // Update simulation with new data
     this.simulation
       .nodes(nodes)
       .on("tick", () => {
         linkUpdate
-          .attr("x1", d => d.source.x)
-          .attr("y1", d => d.source.y)
-          .attr("x2", d => d.target.x)
-          .attr("y2", d => d.target.y);
+          .attr("x1", d => {
+            const source = d.source.id ? d.source : nodes.find(n => n.id === d.source);
+            return source ? source.x : 0;
+          })
+          .attr("y1", d => {
+            const source = d.source.id ? d.source : nodes.find(n => n.id === d.source);
+            return source ? source.y : 0;
+          })
+          .attr("x2", d => {
+            const target = d.target.id ? d.target : nodes.find(n => n.id === d.target);
+            return target ? target.x : 0;
+          })
+          .attr("y2", d => {
+            const target = d.target.id ? d.target : nodes.find(n => n.id === d.target);
+            return target ? target.y : 0;
+          });
 
         nodeUpdate
           .attr("transform", d => `translate(${d.x},${d.y})`);
       });
 
-    // Update center force with correct dimensions
+    // Update forces
     this.simulation
-      .force("center", d3.forceCenter((this.width || 800) / 2, (this.height || 600) / 2));
+      .force("center", d3.forceCenter((this.width || 800) / 2, (this.height || 600) / 2))
+      .force("link").links(links);
 
-    this.simulation.force("link").links(links);
     console.log("Starting simulation with", nodes.length, "nodes and", links.length, "links");
-    this.simulation.alpha(1).restart();
+    this.simulation.alpha(0.3).restart(); // Use lower alpha for smoother updates
   },
 
   getNodeRadius(node) {
@@ -261,8 +347,28 @@ const GraphVisualization = {
       this.simulation.stop();
     }
 
-    this.linkGroup.selectAll("*").remove();
-    this.nodeGroup.selectAll("*").remove();
+    if (this.linkGroup) {
+      this.linkGroup.selectAll("*").remove();
+    }
+    if (this.nodeGroup) {
+      this.nodeGroup.selectAll("*").remove();
+    }
+  },
+
+  clearDataset() {
+    // Clear the internal data maps
+    if (this.graphNodes) {
+      this.graphNodes.clear();
+    }
+    if (this.graphLinks) {
+      this.graphLinks.clear();
+    }
+  },
+
+  resetGraph() {
+    // Clear both visual elements and dataset
+    this.clearGraph();
+    this.clearDataset();
   },
 
   drag(simulation) {
