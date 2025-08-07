@@ -471,9 +471,10 @@ defmodule ReoxtWeb.GraphLive do
     transaction_count = length(graph_data.nodes)
     edge_count = length(graph_data.edges)
 
-    total_value = 
+    total_value =
       graph_data.nodes
-      |> Enum.map(& &1.total_output_value)
+      |> Enum.flat_map(& &1.outputs)
+      |> Enum.map(& &1.value)
       |> Enum.filter(&is_number/1)
       |> Enum.sum()
       |> case do
