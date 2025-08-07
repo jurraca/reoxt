@@ -36,3 +36,7 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "mix phx.server"
+
+[[ports]]
+localPort = 4000
+externalPort = 80
