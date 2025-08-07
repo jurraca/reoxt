@@ -154,14 +154,14 @@ IO.puts("Creating consolidation transaction...")
       value: 200000000
     },
     %{
-      txid: amount_split.transaction.txid,
+      txid: amount_split.txid,
       vout: 1, # David's 3 BTC
       script_sig: "signature_david",
       sequence: 4294967295,
       value: 300000000
     },
     %{
-      txid: amount_split.transaction.txid,
+      txid: amount_split.txid,
       vout: 2, # Eve's 1.5 BTC
       script_sig: "signature_eve",
       sequence: 4294967295,
@@ -193,7 +193,7 @@ IO.puts("Creating chain continuation transaction...")
   },
   [
     %{
-      txid: consolidation.transaction.txid,
+      txid: consolidation.txid,
       vout: 0,
       script_sig: "signature_frank",
       sequence: 4294967295,
@@ -232,7 +232,7 @@ IO.puts("Creating multi-sig transaction...")
   },
   [
     %{
-      txid: chain_continue.transaction.txid,
+      txid: chain_continue.txid,
       vout: 0, # Grace's 4 BTC
       script_sig: "multisig_signature_grace",
       sequence: 4294967295,
@@ -264,7 +264,7 @@ IO.puts("Creating fan-out transaction...")
   },
   [
     %{
-      txid: simple_send.transaction.txid,
+      txid: simple_send.txid,
       vout: 1, # Alice's change
       script_sig: "signature_alice_fanout",
       sequence: 4294967295,
@@ -329,21 +329,21 @@ IO.puts("Creating additional isolated transactions...")
   },
   [
     %{
-      txid: fanout_tx.transaction.txid,
+      txid: fanout_tx.txid,
       vout: 0, # Recipient0's output
       script_sig: "signature_recipient0",
       sequence: 4294967295,
       value: 399000000
     },
     %{
-      txid: fanout_tx.transaction.txid,
+      txid: fanout_tx.txid,
       vout: 1, # Recipient1's output
       script_sig: "signature_recipient1",
       sequence: 4294967295,
       value: 399000000
     },
     %{
-      txid: coinbase2.transaction.txid,
+      txid: coinbase2.txid,
       vout: 0, # Miner2's coinbase
       script_sig: "signature_miner2",
       sequence: 4294967295,
@@ -381,7 +381,7 @@ IO.puts("Creating additional isolated transactions...")
   },
   [
     %{
-      txid: cross_chain.transaction.txid,
+      txid: cross_chain.txid,
       vout: 1, # Cross chain change
       script_sig: "signature_circular1",
       sequence: 4294967295,
@@ -418,7 +418,7 @@ IO.puts("Creating additional isolated transactions...")
   },
   [
     %{
-      txid: circular1.transaction.txid,
+      txid: circular1.txid,
       vout: 0, # 10 BTC from circular1
       script_sig: "signature_circular2",
       sequence: 4294967295,
@@ -447,17 +447,17 @@ IO.puts("Seed data created successfully!")
 
 # Print summary
 IO.puts("\n=== TRANSACTION SUMMARY ===")
-IO.puts("Genesis coinbase: #{genesis.transaction.txid}")
-IO.puts("Simple send: #{simple_send.transaction.txid}")
-IO.puts("Amount split: #{amount_split.transaction.txid}")
-IO.puts("Consolidation: #{consolidation.transaction.txid}")
-IO.puts("Chain continuation: #{chain_continue.transaction.txid}")
-IO.puts("Multi-sig: #{multisig_tx.transaction.txid}")
-IO.puts("Fan-out: #{fanout_tx.transaction.txid}")
-IO.puts("Second coinbase: #{coinbase2.transaction.txid}")
-IO.puts("Cross-chain: #{cross_chain.transaction.txid}")
-IO.puts("Circular part 1: #{circular1.transaction.txid}")
-IO.puts("Circular part 2: #{circular2.transaction.txid}")
+IO.puts("Genesis coinbase: #{genesis.txid}")
+IO.puts("Simple send: #{simple_send.txid}")
+IO.puts("Amount split: #{amount_split.txid}")
+IO.puts("Consolidation: #{consolidation.txid}")
+IO.puts("Chain continuation: #{chain_continue.txid}")
+IO.puts("Multi-sig: #{multisig_tx.txid}")
+IO.puts("Fan-out: #{fanout_tx.txid}")
+IO.puts("Second coinbase: #{coinbase2.txid}")
+IO.puts("Cross-chain: #{cross_chain.txid}")
+IO.puts("Circular part 1: #{circular1.txid}")
+IO.puts("Circular part 2: #{circular2.txid}")
 
 total_transactions = Repo.aggregate(Transaction, :count)
 total_inputs = Repo.aggregate(TransactionInput, :count)
