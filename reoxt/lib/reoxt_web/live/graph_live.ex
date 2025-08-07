@@ -1,0 +1,382 @@
+
+defmodule ReoxtWeb.GraphLive do
+  use ReoxtWeb, :live_view
+
+  alias Reoxt.Analyzer
+  alias Reoxt.Transactions
+  alias Reoxt.GraphAlgorithms
+
+  @impl true
+  def mount(_params, _session, socket) do
+    {:ok,
+     socket
+     |> assign(:page_title, "Transaction Graph")
+     |> assign(:loading, false)
+     |> assign(:error, nil)
+     |> assign(:graph_data, nil)
+     |> assign(:selected_txid, "")
+     |> assign(:search_depth, 3)
+     |> assign(:graph_stats, %{})
+     |> assign(:algorithm_result, nil)
+     |> assign(:selected_algorithm, "centrality")}
+  end
+
+  @impl true
+  def handle_params(%{"txid" => txid}, _uri, socket) do
+    send(self(), {:load_graph, txid})
+    {:noreply, assign(socket, :selected_txid, txid)}
+  end
+
+  def handle_params(_params, _uri, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("search_graph", %{"search" => %{"txid" => txid, "depth" => depth}}, socket) do
+    depth = String.to_integer(depth)
+    
+    socket = 
+      socket
+      |> assign(:selected_txid, txid)
+      |> assign(:search_depth, depth)
+      |> assign(:loading, true)
+      |> assign(:error, nil)
+
+    send(self(), {:load_graph, txid})
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("run_algorithm", %{"algorithm" => algorithm}, socket) do
+    case socket.assigns.graph_data do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Please load a graph first")}
+      
+      graph_data ->
+        result = run_graph_algorithm(algorithm, graph_data)
+        
+        socket = 
+          socket
+          |> assign(:selected_algorithm, algorithm)
+          |> assign(:algorithm_result, result)
+        
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("clear_graph", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:graph_data, nil)
+     |> assign(:selected_txid, "")
+     |> assign(:graph_stats, %{})
+     |> assign(:algorithm_result, nil)
+     |> push_event("clear_graph", %{})}
+  end
+
+  @impl true
+  def handle_info({:load_graph, txid}, socket) do
+    case build_transaction_graph(txid, socket.assigns.search_depth) do
+      {:ok, graph_data} ->
+        stats = calculate_graph_stats(graph_data)
+        
+        socket = 
+          socket
+          |> assign(:loading, false)
+          |> assign(:graph_data, graph_data)
+          |> assign(:graph_stats, stats)
+          |> assign(:error, nil)
+          |> push_event("render_graph", %{graph_data: graph_data})
+
+        {:noreply, socket}
+
+      {:error, reason} ->
+        socket = 
+          socket
+          |> assign(:loading, false)
+          |> assign(:error, "Failed to load graph: #{inspect(reason)}")
+
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="container mx-auto p-6">
+      <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Transaction Graph Visualization</h1>
+        <p class="text-gray-600 mt-2">
+          Visualize Bitcoin transaction relationships and analyze network patterns
+        </p>
+      </div>
+
+      <!-- Search Controls -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <.form 
+          for={%{}}
+          as={:search}
+          phx-submit="search_graph"
+          class="flex gap-4 items-end"
+        >
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Transaction ID
+            </label>
+            <input
+              type="text"
+              name="search[txid]"
+              value={@selected_txid}
+              placeholder="Enter transaction hash..."
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          
+          <div class="w-32">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Depth
+            </label>
+            <select
+              name="search[depth]"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="1" selected={@search_depth == 1}>1</option>
+              <option value="2" selected={@search_depth == 2}>2</option>
+              <option value="3" selected={@search_depth == 3}>3</option>
+              <option value="4" selected={@search_depth == 4}>4</option>
+              <option value="5" selected={@search_depth == 5}>5</option>
+            </select>
+          </div>
+          
+          <button
+            type="submit"
+            disabled={@loading}
+            class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {if @loading, do: "Loading...", else: "Search"}
+          </button>
+          
+          <button
+            type="button"
+            phx-click="clear_graph"
+            class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+          >
+            Clear
+          </button>
+        </.form>
+      </div>
+
+      <!-- Error Display -->
+      <%= if @error do %>
+        <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+          <div class="flex">
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-800">Error</h3>
+              <div class="mt-2 text-sm text-red-700">
+                <%= @error %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Main Content Area -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Graph Visualization -->
+        <div class="lg:col-span-3">
+          <div class="bg-white rounded-lg shadow-md">
+            <div class="p-4 border-b border-gray-200">
+              <h2 class="text-lg font-semibold">Transaction Network</h2>
+            </div>
+            <div class="p-4">
+              <div
+                id="graph-container"
+                phx-hook="GraphVisualization"
+                class="w-full h-96 border border-gray-300 rounded"
+                style="min-height: 600px;"
+              >
+                <%= if @loading do %>
+                  <div class="flex items-center justify-center h-full">
+                    <div class="text-center">
+                      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <p class="mt-2 text-gray-600">Loading graph...</p>
+                    </div>
+                  </div>
+                <% else %>
+                  <%= if @graph_data == nil do %>
+                    <div class="flex items-center justify-center h-full text-gray-500">
+                      <div class="text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No graph loaded</h3>
+                        <p class="mt-1 text-sm text-gray-500">Enter a transaction ID to visualize the network</p>
+                      </div>
+                    </div>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+          <!-- Graph Statistics -->
+          <%= if @graph_data do %>
+            <div class="bg-white rounded-lg shadow-md p-4">
+              <h3 class="text-lg font-semibold mb-3">Graph Statistics</h3>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Transactions:</span>
+                  <span class="font-medium"><%= @graph_stats[:transaction_count] || 0 %></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Connections:</span>
+                  <span class="font-medium"><%= @graph_stats[:edge_count] || 0 %></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Total Value:</span>
+                  <span class="font-medium"><%= @graph_stats[:total_value] || "0" %> BTC</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Avg. Confirmations:</span>
+                  <span class="font-medium"><%= @graph_stats[:avg_confirmations] || 0 %></span>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Graph Algorithms -->
+          <%= if @graph_data do %>
+            <div class="bg-white rounded-lg shadow-md p-4">
+              <h3 class="text-lg font-semibold mb-3">Graph Analysis</h3>
+              
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Algorithm
+                </label>
+                <select
+                  phx-change="run_algorithm"
+                  name="algorithm"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="centrality" selected={@selected_algorithm == "centrality"}>
+                    Centrality Analysis
+                  </option>
+                  <option value="cycles" selected={@selected_algorithm == "cycles"}>
+                    Cycle Detection
+                  </option>
+                  <option value="components" selected={@selected_algorithm == "components"}>
+                    Connected Components
+                  </option>
+                  <option value="shortest_paths" selected={@selected_algorithm == "shortest_paths"}>
+                    Shortest Paths
+                  </option>
+                </select>
+              </div>
+
+              <%= if @algorithm_result do %>
+                <div class="text-sm">
+                  <h4 class="font-medium mb-2">Results:</h4>
+                  <div class="bg-gray-50 rounded p-2 max-h-32 overflow-y-auto">
+                    <pre class="text-xs"><%= inspect(@algorithm_result, pretty: true, limit: :infinity) %></pre>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <!-- Legend -->
+          <div class="bg-white rounded-lg shadow-md p-4">
+            <h3 class="text-lg font-semibold mb-3">Legend</h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex items-center">
+                <div class="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
+                <span>Transaction</span>
+              </div>
+              <div class="flex items-center">
+                <div class="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
+                <span>High Value (>1 BTC)</span>
+              </div>
+              <div class="flex items-center">
+                <div class="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
+                <span>Unconfirmed</span>
+              </div>
+              <div class="flex items-center">
+                <div class="w-4 h-1 bg-gray-400 mr-2"></div>
+                <span>Transaction Flow</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # Private functions
+  defp build_transaction_graph(txid, depth) do
+    try do
+      graph_data = Analyzer.build_transaction_graph(txid, depth)
+      {:ok, graph_data}
+    rescue
+      error ->
+        {:error, error}
+    end
+  end
+
+  defp calculate_graph_stats(graph_data) do
+    transaction_count = length(graph_data.nodes)
+    edge_count = length(graph_data.edges)
+    
+    total_value = 
+      graph_data.nodes
+      |> Enum.map(& &1.total_output_value)
+      |> Enum.filter(&is_number/1)
+      |> Enum.sum()
+      |> case do
+        0 -> "0"
+        val -> :erlang.float_to_binary(val / 100_000_000, decimals: 8)
+      end
+
+    avg_confirmations = 
+      graph_data.nodes
+      |> Enum.map(& &1.confirmations)
+      |> Enum.filter(&is_number/1)
+      |> case do
+        [] -> 0
+        confirmations -> Enum.sum(confirmations) / length(confirmations) |> Float.round(1)
+      end
+
+    %{
+      transaction_count: transaction_count,
+      edge_count: edge_count,
+      total_value: total_value,
+      avg_confirmations: avg_confirmations
+    }
+  end
+
+  defp run_graph_algorithm("centrality", graph_data) do
+    GraphAlgorithms.calculate_centrality(graph_data)
+  end
+
+  defp run_graph_algorithm("cycles", graph_data) do
+    GraphAlgorithms.detect_cycles(graph_data)
+  end
+
+  defp run_graph_algorithm("components", graph_data) do
+    GraphAlgorithms.find_strongly_connected_components(graph_data)
+  end
+
+  defp run_graph_algorithm("shortest_paths", graph_data) do
+    GraphAlgorithms.all_pairs_shortest_paths(graph_data)
+  end
+
+  defp run_graph_algorithm(_, _graph_data) do
+    %{error: "Unknown algorithm"}
+  end
+end

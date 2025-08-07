@@ -18,6 +18,8 @@ defmodule ReoxtWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    live "/graph", GraphLive, :index
+    live "/graph/:txid", GraphLive, :show
   end
 
   # Other scopes may use custom stacks.
