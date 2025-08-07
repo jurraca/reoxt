@@ -1,3 +1,4 @@
+
 import * as d3 from "d3";
 
 const GraphVisualization = {
@@ -18,40 +19,28 @@ const GraphVisualization = {
 
   initializeGraph() {
     const container = this.el;
-    console.log("this", container)
+    console.log("Container element:", container);
+    
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 600;
 
     // Clear any existing content
     container.innerHTML = '';
 
-    // Create SVG
+    // Create SVG using D3's create method like the example
     this.svg = d3.select(container)
       .append("svg")
       .attr("width", width)
       .attr("height", height)
+      .attr("viewBox", [0, 0, width, height])
       .style("background", "#0a0a0a")
-      .style("border-radius", "8px");
+      .style("border-radius", "8px")
+      .style("max-width", "100%")
+      .style("height", "auto");
 
-    // Create groups for links and nodes
-    this.linkGroup = this.svg.append("g").attr("class", "links");
-    this.nodeGroup = this.svg.append("g").attr("class", "nodes");
-
-    // Create force simulation
-    this.simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().id(d => d.id).distance(100))
-      .force("charge", d3.forceManyBody().strength(-300))
-      .force("center", d3.forceCenter(width / 2, height / 2));
-
-    // Add zoom behavior
-    const zoom = d3.zoom()
-      .scaleExtent([0.1, 4])
-      .on("zoom", (event) => {
-        this.linkGroup.attr("transform", event.transform);
-        this.nodeGroup.attr("transform", event.transform);
-      });
-
-    this.svg.call(zoom);
+    // Store dimensions for later use
+    this.width = width;
+    this.height = height;
 
     console.log('Graph initialized with dimensions:', { width, height });
   },
@@ -64,132 +53,110 @@ const GraphVisualization = {
 
     console.log("Rendering graph:", graphData.nodes.length, "nodes,", graphData.edges.length, "edges");
 
-    // Prepare data with proper structure
+    // Prepare data like the example - simple structure
     const nodes = graphData.nodes.map(d => ({ 
-      ...d, 
       id: d.txid,
-      x: Math.random() * 400 + 200,
-      y: Math.random() * 300 + 150
+      group: 1  // Simple grouping for color
     }));
 
     const links = graphData.edges.map(d => ({ 
       source: d.from, 
       target: d.to,
-      type: d.type || 'default'
+      value: 1  // Simple value for stroke width
     }));
 
     console.log("Processed nodes:", nodes.length);
     console.log("Processed links:", links.length);
 
-    // Store data references for tick function
-    this.currentNodes = nodes;
-    this.currentLinks = links;
+    // Color scale like the example
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
 
-    // Update simulation data
-    this.simulation.nodes(nodes);
-    this.simulation.force("link").links(links);
+    // Create simulation exactly like the example
+    this.simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links).id(d => d.id))
+      .force("charge", d3.forceManyBody().strength(-300))
+      .force("center", d3.forceCenter(this.width / 2, this.height / 2))
+      .on("tick", () => this.ticked());
 
-    // Use D3's general update pattern for links
-    const linkSelection = this.linkGroup
-      .selectAll("line")
-      .data(links, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
+    // Clear previous graph elements
+    this.svg.selectAll("*").remove();
 
-    // Remove old links
-    linkSelection.exit().remove();
-
-    // Add new links
-    const linkEnter = linkSelection.enter()
-      .append("line")
+    // Add links exactly like the example
+    this.linkElements = this.svg.append("g")
       .attr("stroke", "#39ff14")
       .attr("stroke-opacity", 0.6)
-      .attr("stroke-width", 2);
+      .selectAll()
+      .data(links)
+      .join("line")
+      .attr("stroke-width", d => Math.sqrt(d.value) * 2);
 
-    // Merge enter + update selections
-    this.linkElements = linkEnter.merge(linkSelection);
-
-    // Use D3's general update pattern for nodes
-    const nodeSelection = this.nodeGroup
-      .selectAll("g.node")
-      .data(nodes, d => d.id);
-
-    // Remove old nodes
-    nodeSelection.exit().remove();
-
-    // Add new nodes
-    const nodeEnter = nodeSelection.enter()
-      .append("g")
-      .attr("class", "node")
-      .call(this.drag());
-
-    // Add circle to new nodes
-    nodeEnter.append("circle")
-      .attr("r", 8)
-      .attr("fill", "#bf00ff")
+    // Add nodes exactly like the example
+    this.nodeElements = this.svg.append("g")
       .attr("stroke", "#da70d6")
-      .attr("stroke-width", 2);
+      .attr("stroke-width", 2)
+      .selectAll()
+      .data(nodes)
+      .join("circle")
+      .attr("r", 8)
+      .attr("fill", "#bf00ff");
 
-    // Add tooltips to new nodes
-    nodeEnter.append("title")
-      .text(d => `TX: ${d.txid.substring(0, 16)}...`);
+    // Add tooltips like the example
+    this.nodeElements.append("title")
+      .text(d => `TX: ${d.id.substring(0, 16)}...`);
 
-    // Merge enter + update selections
-    this.nodeElements = nodeEnter.merge(nodeSelection);
-
-    // Update tick function with stored references
-    this.simulation.on("tick", () => {
-      if (this.linkElements) {
-        this.linkElements
-          .attr("x1", d => d.source.x || 0)
-          .attr("y1", d => d.source.y || 0)
-          .attr("x2", d => d.target.x || 0)
-          .attr("y2", d => d.target.y || 0);
-      }
-
-      if (this.nodeElements) {
-        this.nodeElements
-          .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
-      }
-    });
+    // Add drag behavior exactly like the example
+    this.nodeElements.call(d3.drag()
+      .on("start", (event) => this.dragstarted(event))
+      .on("drag", (event) => this.dragged(event))
+      .on("end", (event) => this.dragended(event)));
 
     console.log("Starting simulation with", nodes.length, "nodes and", links.length, "links");
 
-    // Restart simulation with higher alpha for better initial layout
+    // Start simulation
     this.simulation.alpha(0.8).restart();
   },
 
-  drag() {
-    function dragstarted(event, d) {
-      if (!event.active) this.simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
+  // Tick function exactly like the example
+  ticked() {
+    if (this.linkElements) {
+      this.linkElements
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
     }
 
-    function dragged(event, d) {
-      d.fx = event.x;
-      d.fy = event.y;
+    if (this.nodeElements) {
+      this.nodeElements
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
     }
+  },
 
-    function dragended(event, d) {
-      if (!event.active) this.simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-    }
+  // Drag functions exactly like the example
+  dragstarted(event) {
+    if (!event.active) this.simulation.alphaTarget(0.3).restart();
+    event.subject.fx = event.subject.x;
+    event.subject.fy = event.subject.y;
+  },
 
-    return d3.drag()
-      .on("start", dragstarted.bind(this))
-      .on("drag", dragged)
-      .on("end", dragended.bind(this));
+  dragged(event) {
+    event.subject.fx = event.x;
+    event.subject.fy = event.y;
+  },
+
+  dragended(event) {
+    if (!event.active) this.simulation.alphaTarget(0);
+    event.subject.fx = null;
+    event.subject.fy = null;
   },
 
   clearGraph() {
     if (this.simulation) {
       this.simulation.stop();
     }
-    if (this.linkGroup) {
-      this.linkGroup.selectAll("*").remove();
-    }
-    if (this.nodeGroup) {
-      this.nodeGroup.selectAll("*").remove();
+    if (this.svg) {
+      this.svg.selectAll("*").remove();
     }
   },
 
