@@ -7,3 +7,32 @@ MIX_HOME = "$REPL_HOME/.mix"
 
 [nix]
 channel = "stable-24_05"
+
+[workflows]
+runButton = "Phoenix Server"
+
+[[workflows.workflow]]
+name = "Setup"
+author = 11084461
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "mix deps.get"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "mix ecto.setup"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "mix assets.setup"
+
+[[workflows.workflow]]
+name = "Phoenix Server"
+author = 11084461
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "mix phx.server"
