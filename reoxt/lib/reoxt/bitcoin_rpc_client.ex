@@ -123,7 +123,7 @@ defmodule Reoxt.BitcoinRpcClient do
     ]
 
     case HTTPoison.post(url, body, headers, recv_timeout: 30_000) do
-      {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->
+      {:ok, %{status_code: 200, body: response_body}} ->
         case Jason.decode(response_body) do
           {:ok, %{"error" => nil, "result" => result}} ->
             {:ok, result}
@@ -133,10 +133,10 @@ defmodule Reoxt.BitcoinRpcClient do
             {:error, {:json_decode_error, decode_error}}
         end
 
-      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} ->
+      {:ok, %{status_code: status_code, body: body}} ->
         {:error, {:http_error, status_code, body}}
 
-      {:error, %HTTPoison.Error{reason: reason}} ->
+      {:error, %{reason: reason}} ->
         {:error, {:connection_error, reason}}
     end
   end
