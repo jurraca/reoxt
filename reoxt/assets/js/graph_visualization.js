@@ -252,4 +252,4 @@ const GraphVisualization = {
   }
 };
 
-export default GraphVisualization;
+export { GraphVisualization as default };
