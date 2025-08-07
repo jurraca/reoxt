@@ -96,7 +96,7 @@ defmodule ReoxtWeb.GraphLive do
   def handle_info({:load_graph, txid}, socket) do
     case build_transaction_graph(txid, socket.assigns.search_depth) do
       {:ok, graph_data} ->
-        stats = calculate_graph_stats(graph_data)
+        stats = [] #calculate_graph_stats(graph_data)
         
         socket = 
           socket
