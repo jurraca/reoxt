@@ -79,8 +79,8 @@ defmodule ReoxtWeb do
 
   defp html_helpers do
     quote do
-      use Phoenix.HTML
-
+      import Phoenix.HTML
+      import Phoenix.HTML.Form
       import Phoenix.LiveView.Helpers
       import ReoxtWeb.CoreComponents
       import ReoxtWeb.Gettext
