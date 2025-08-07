@@ -1,10 +1,21 @@
+// Load D3.js if not already available
+if (typeof d3 === 'undefined') {
+  const script = document.createElement('script');
+  script.src = 'https://d3js.org/d3.v7.min.js';
+  script.onload = () => console.log('D3.js loaded');
+  document.head.appendChild(script);
+}
+
 // Graph visualization hook for Phoenix LiveView
 const GraphVisualization = {
   mounted() {
+    console.log('GraphVisualization hook mounted');
+    console.log('Container element:', this.el);
     this.initializeGraph();
 
     // Listen for graph data updates from LiveView
     this.handleEvent("render_graph", (data) => {
+      console.log('Received render_graph event:', data);
       this.renderGraph(data.graph_data);
     });
 
