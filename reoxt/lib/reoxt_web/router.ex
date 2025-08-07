@@ -18,9 +18,7 @@ defmodule ReoxtWeb.Router do
     pipe_through :browser
 
     # Redirect root to graph page
-    get "/", fn conn, _params ->
-      Phoenix.Controller.redirect(conn, to: "/graph")
-    end
+    get "/", GraphLive, :index
 
     live "/graph", GraphLive, :index
     live "/graph/:txid", GraphLive, :show
