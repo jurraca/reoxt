@@ -1,3 +1,4 @@
+
 // If you want to use Phoenix channels, run `mix help phx.gen.channel`
 // to get started and then uncomment the line below.
 // import "./user_socket.js"
@@ -17,7 +18,6 @@
 // If you have dependencies that try to import CSS, esbuild will generate a separate `app.css` file.
 // To load it, simply add a second `<link>` to your `root.html.heex` file.
 
-import {ColocatedHooks} from "../deps/phoenix_live_view/assets/js/phoenix_live_view/index"
 import GraphVisualization from "./graph_visualization"
 
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
@@ -27,11 +27,8 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
-let colocatedHooks = new ColocatedHooks()
-
 let Hooks = {
-  GraphVisualization: GraphVisualization,
-  ...colocatedHooks
+  GraphVisualization: GraphVisualization
 }
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

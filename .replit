@@ -35,7 +35,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "mix phx.server"
+args = "cd reoxt && mix phx.server"
 
 [[ports]]
 localPort = 4000
