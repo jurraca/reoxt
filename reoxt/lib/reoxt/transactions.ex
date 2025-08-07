@@ -1,4 +1,3 @@
-
 defmodule Reoxt.Transactions do
   @moduledoc """
   The Transactions context for handling Bitcoin transaction data.
