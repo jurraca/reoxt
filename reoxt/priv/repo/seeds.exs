@@ -39,7 +39,7 @@ IO.puts("Creating genesis transaction...")
       type: "pubkeyhash"
     }
   ]
-)
+) |> dbg()
 
 # Simple send: Alice sends 10 BTC to Bob
 IO.puts("Creating simple send transaction...")
