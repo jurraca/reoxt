@@ -9,6 +9,7 @@
 # 5. Fan-out/fan-in patterns
 
 alias Reoxt.Repo
+alias Reoxt.Transactions
 alias Reoxt.Transactions.{Transaction, TransactionInput, TransactionOutput}
 
 # Clear existing data
@@ -16,39 +17,9 @@ Repo.delete_all(TransactionOutput)
 Repo.delete_all(TransactionInput)
 Repo.delete_all(Transaction)
 
-# Helper function to create a transaction with inputs and outputs
-defp create_transaction_with_details(attrs, inputs_data, outputs_data) do
-  {:ok, transaction} = 
-    %Transaction{}
-    |> Transaction.changeset(attrs)
-    |> Repo.insert()
-
-  # Create inputs
-  inputs = Enum.map(inputs_data, fn input_data ->
-    input_data = Map.put(input_data, :transaction_id, transaction.id)
-    {:ok, input} = 
-      %TransactionInput{}
-      |> TransactionInput.changeset(input_data)
-      |> Repo.insert()
-    input
-  end)
-
-  # Create outputs
-  outputs = Enum.map(outputs_data, fn output_data ->
-    output_data = Map.put(output_data, :transaction_id, transaction.id)
-    {:ok, output} = 
-      %TransactionOutput{}
-      |> TransactionOutput.changeset(output_data)
-      |> Repo.insert()
-    output
-  end)
-
-  %{transaction: transaction, inputs: inputs, outputs: outputs}
-end
-
 # Genesis/Coinbase transaction (no inputs, only outputs)
 IO.puts("Creating genesis transaction...")
-genesis = create_transaction_with_details(
+{:ok, genesis} = Transactions.create_transaction_with_details(
   %{
     txid: "genesis_coinbase_000000000000000000000000000000000000000000000000000000000000",
     block_height: 1,
@@ -72,7 +43,7 @@ genesis = create_transaction_with_details(
 
 # Simple send: Alice sends 10 BTC to Bob
 IO.puts("Creating simple send transaction...")
-simple_send = create_transaction_with_details(
+{:ok, simple_send} = Transactions.create_transaction_with_details(
   %{
     txid: "simple_send_alice_to_bob_1111111111111111111111111111111111111111111111",
     block_height: 2,
@@ -111,7 +82,7 @@ simple_send = create_transaction_with_details(
 
 # Amount split: Bob splits his 10 BTC to multiple recipients
 IO.puts("Creating amount split transaction...")
-amount_split = create_transaction_with_details(
+{:ok, amount_split} = Transactions.create_transaction_with_details(
   %{
     txid: "amount_split_bob_to_many_222222222222222222222222222222222222222222",
     block_height: 3,
@@ -164,7 +135,7 @@ amount_split = create_transaction_with_details(
 
 # Consolidation: Multiple people send to Frank
 IO.puts("Creating consolidation transaction...")
-consolidation = create_transaction_with_details(
+{:ok, consolidation} = Transactions.create_transaction_with_details(
   %{
     txid: "consolidation_many_to_frank_33333333333333333333333333333333333333333",
     block_height: 4,
@@ -210,7 +181,7 @@ consolidation = create_transaction_with_details(
 
 # Chain continuation: Frank sends part of his BTC
 IO.puts("Creating chain continuation transaction...")
-chain_continue = create_transaction_with_details(
+{:ok, chain_continue} = Transactions.create_transaction_with_details(
   %{
     txid: "chain_continue_frank_to_grace_444444444444444444444444444444444444444",
     block_height: 5,
@@ -249,7 +220,7 @@ chain_continue = create_transaction_with_details(
 
 # Complex multi-sig transaction
 IO.puts("Creating multi-sig transaction...")
-multisig_tx = create_transaction_with_details(
+{:ok, multisig_tx} = Transactions.create_transaction_with_details(
   %{
     txid: "multisig_transaction_555555555555555555555555555555555555555555555",
     block_height: 6,
@@ -281,7 +252,7 @@ multisig_tx = create_transaction_with_details(
 
 # Fan-out pattern: One input creates many small outputs
 IO.puts("Creating fan-out transaction...")
-fanout_tx = create_transaction_with_details(
+{:ok, fanout_tx} = Transactions.create_transaction_with_details(
   %{
     txid: "fanout_pattern_666666666666666666666666666666666666666666666666",
     block_height: 7,
@@ -323,7 +294,7 @@ fanout_tx = create_transaction_with_details(
 IO.puts("Creating additional isolated transactions...")
 
 # Another coinbase transaction (different block)
-coinbase2 = create_transaction_with_details(
+{:ok, coinbase2} = Transactions.create_transaction_with_details(
   %{
     txid: "coinbase2_block8_777777777777777777777777777777777777777777777777",
     block_height: 8,
@@ -346,7 +317,7 @@ coinbase2 = create_transaction_with_details(
 )
 
 # Cross-chain reference: Use output from fanout in new transaction
-cross_chain = create_transaction_with_details(
+{:ok, cross_chain} = Transactions.create_transaction_with_details(
   %{
     txid: "cross_chain_ref_888888888888888888888888888888888888888888888888",
     block_height: 9,
@@ -398,7 +369,7 @@ cross_chain = create_transaction_with_details(
 )
 
 # Circular reference pattern: Create a more complex graph
-circular1 = create_transaction_with_details(
+{:ok, circular1} = Transactions.create_transaction_with_details(
   %{
     txid: "circular_part1_999999999999999999999999999999999999999999999999",
     block_height: 10,
@@ -435,7 +406,7 @@ circular1 = create_transaction_with_details(
   ]
 )
 
-circular2 = create_transaction_with_details(
+{:ok, circular2} = Transactions.create_transaction_with_details(
   %{
     txid: "circular_part2_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     block_height: 11,

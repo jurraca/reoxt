@@ -143,6 +143,33 @@ defmodule Reoxt.Transactions do
   end
 
   @doc """
+  Helper function to create a transaction with inputs and outputs in one operation.
+  Used for testing and seeding data.
+  """
+  def create_transaction_with_details(attrs, inputs_data, outputs_data) do
+    Repo.transaction(fn ->
+      # Create the transaction
+      {:ok, transaction} = create_transaction(attrs)
+
+      # Create inputs
+      inputs = Enum.map(inputs_data, fn input_data ->
+        input_data = Map.put(input_data, :transaction_id, transaction.id)
+        {:ok, input} = create_transaction_input(input_data)
+        input
+      end)
+
+      # Create outputs
+      outputs = Enum.map(outputs_data, fn output_data ->
+        output_data = Map.put(output_data, :transaction_id, transaction.id)
+        {:ok, output} = create_transaction_output(output_data)
+        output
+      end)
+
+      %{transaction: transaction, inputs: inputs, outputs: outputs}
+    end)
+  end
+
+  @doc """
   Lists recent transactions with pagination.
   """
   def list_recent_transactions(limit \\ 50, offset \\ 0) do
