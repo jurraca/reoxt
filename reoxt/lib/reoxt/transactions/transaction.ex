@@ -2,6 +2,7 @@ defmodule Reoxt.Transactions.Transaction do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @derive {Jason.Encoder, except: [:__meta__]}
   schema "transactions" do
     field :txid, :string
     field :block_height, :integer

@@ -2,6 +2,7 @@ defmodule Reoxt.Transactions.TransactionOutput do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @derive {Jason.Encoder, except: [:__meta__]}
   schema "transaction_outputs" do
     field :value, :integer
     field :n, :integer
