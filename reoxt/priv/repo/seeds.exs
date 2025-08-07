@@ -55,7 +55,7 @@ IO.puts("Creating simple send transaction...")
   },
   [
     %{
-      txid: genesis.transaction.txid,
+      txid: genesis.txid,
       vout: 0,
       script_sig: "signature_alice",
       sequence: 4294967295,
@@ -94,7 +94,7 @@ IO.puts("Creating amount split transaction...")
   },
   [
     %{
-      txid: simple_send.transaction.txid,
+      txid: simple_send.txid,
       vout: 0,
       script_sig: "signature_bob",
       sequence: 4294967295,
@@ -147,7 +147,7 @@ IO.puts("Creating consolidation transaction...")
   },
   [
     %{
-      txid: amount_split.transaction.txid,
+      txid: amount_split.txid,
       vout: 0, # Charlie's 2 BTC
       script_sig: "signature_charlie",
       sequence: 4294967295,
