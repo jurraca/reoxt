@@ -1,14 +1,13 @@
-
 // Graph visualization hook for Phoenix LiveView
 const GraphVisualization = {
   mounted() {
     this.initializeGraph();
-    
+
     // Listen for graph data updates from LiveView
     this.handleEvent("render_graph", (data) => {
       this.renderGraph(data.graph_data);
     });
-    
+
     this.handleEvent("clear_graph", () => {
       this.clearGraph();
     });
@@ -55,8 +54,14 @@ const GraphVisualization = {
 
   renderGraph(graphData) {
     if (!graphData || !graphData.nodes || !graphData.edges) {
+      console.error("Invalid graph data provided");
       return;
     }
+
+    // Store current height for confirmations calculation
+    this.currentHeight = graphData.current_height || 800000;
+
+    console.log("Rendering graph with data:", graphData);
 
     // Process nodes and links
     const nodes = graphData.nodes.map(node => ({
@@ -119,7 +124,7 @@ const GraphVisualization = {
 
     // Add tooltips
     nodeEnter.append("title")
-      .text(d => `TX: ${d.txid}\nValue: ${this.formatValue(d.total_output_value || 0)} BTC\nConfirmations: ${d.confirmations || 0}`);
+      .text(d => `TX: ${d.txid}\nValue: ${this.formatValue(d.total_output_value || 0)} BTC\nConfirmations: ${this.getConfirmations(d)}`);
 
     const nodeUpdate = nodeEnter.merge(node);
 
@@ -145,7 +150,7 @@ const GraphVisualization = {
     // Scale radius based on transaction value
     const baseRadius = 8;
     const value = node.total_output_value || 0;
-    
+
     if (value > 100000000) { // > 1 BTC
       return baseRadius * 2;
     } else if (value > 10000000) { // > 0.1 BTC
@@ -156,7 +161,7 @@ const GraphVisualization = {
 
   getNodeColor(node) {
     // Color based on confirmations and value with neon theme
-    const confirmations = node.confirmations || 0;
+    const confirmations = this.getConfirmations(node);
     const value = node.total_output_value || 0;
 
     if (confirmations === 0) {
@@ -171,7 +176,7 @@ const GraphVisualization = {
 
   getNodeStrokeColor(node) {
     // Matching stroke colors with higher opacity
-    const confirmations = node.confirmations || 0;
+    const confirmations = this.getConfirmations(node);
     const value = node.total_output_value || 0;
 
     if (confirmations === 0) {
@@ -184,6 +189,14 @@ const GraphVisualization = {
     return "#da70d6"; // Lighter purple stroke
   },
 
+  getConfirmations(node) {
+    // Calculate confirmations based on block_height
+    if (this.currentHeight && node.block_height) {
+      return this.currentHeight - node.block_height;
+    }
+    return 0; // Default to 0 if calculation is not possible
+  },
+
   formatValue(satoshis) {
     return (satoshis / 100000000).toFixed(8);
   },
@@ -192,7 +205,7 @@ const GraphVisualization = {
     if (this.simulation) {
       this.simulation.stop();
     }
-    
+
     this.linkGroup.selectAll("*").remove();
     this.nodeGroup.selectAll("*").remove();
   },
@@ -203,18 +216,18 @@ const GraphVisualization = {
       d.fx = d.x;
       d.fy = d.y;
     }
-    
+
     function dragged(event, d) {
       d.fx = event.x;
       d.fy = event.y;
     }
-    
+
     function dragended(event, d) {
       if (!event.active) simulation.alphaTarget(0);
       d.fx = null;
       d.fy = null;
     }
-    
+
     return d3.drag()
       .on("start", dragstarted)
       .on("drag", dragged)

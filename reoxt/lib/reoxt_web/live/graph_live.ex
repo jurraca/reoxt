@@ -38,7 +38,7 @@ defmodule ReoxtWeb.GraphLive do
     # Validate input before proceeding
     case validate_transaction_id(cleaned_txid) do
       :ok ->
-        socket = 
+        socket =
           socket
           |> assign(:selected_txid, cleaned_txid)
           |> assign(:search_depth, depth)
@@ -51,7 +51,7 @@ defmodule ReoxtWeb.GraphLive do
       {:error, reason} ->
         error_message = format_error_message(reason, cleaned_txid)
 
-        socket = 
+        socket =
           socket
           |> assign(:selected_txid, cleaned_txid)
           |> assign(:search_depth, depth)
@@ -71,7 +71,7 @@ defmodule ReoxtWeb.GraphLive do
       graph_data ->
         result = run_graph_algorithm(algorithm, graph_data)
 
-        socket = 
+        socket =
           socket
           |> assign(:selected_algorithm, algorithm)
           |> assign(:algorithm_result, result)
@@ -97,7 +97,7 @@ defmodule ReoxtWeb.GraphLive do
       {:ok, graph_data} ->
         stats = calculate_graph_stats(graph_data)
 
-        socket = 
+        socket =
           socket
           |> assign(:loading, false)
           |> assign(:graph_data, graph_data)
@@ -110,7 +110,7 @@ defmodule ReoxtWeb.GraphLive do
       {:error, reason} ->
         error_message = format_error_message(reason, txid)
 
-        socket = 
+        socket =
           socket
           |> assign(:loading, false)
           |> assign(:error, error_message)
@@ -130,14 +130,14 @@ defmodule ReoxtWeb.GraphLive do
       </h1>
 
       <div class="mb-8 text-center">
-        <button 
+        <button
           phx-click="search_graph"
           class="btn btn-primary mr-4 px-6 py-3 text-lg"
         >
           <span class="mr-2">🔍</span> Search Graph
         </button>
 
-        <button 
+        <button
           phx-click="clear_graph"
           class="btn btn-secondary px-6 py-3 text-lg"
         >
@@ -147,7 +147,7 @@ defmodule ReoxtWeb.GraphLive do
 
       <!-- Search Controls -->
       <div class="bg-base-200 rounded-lg shadow-lg p-6 mb-8">
-        <.form 
+        <.form
           for={%{}}
           as={:search}
           phx-submit="search_graph"
@@ -482,9 +482,9 @@ defmodule ReoxtWeb.GraphLive do
         val -> :erlang.float_to_binary(val / 100_000_000, decimals: 8)
       end
 
-    avg_confirmations = 
+    avg_confirmations =
       graph_data.nodes
-      |> Enum.map(& &1.confirmations)
+      |> Enum.map(&get_confirmations(&1))
       |> Enum.filter(&is_number/1)
       |> case do
         [] -> 0
@@ -517,5 +517,25 @@ defmodule ReoxtWeb.GraphLive do
 
   defp run_graph_algorithm(_, _graph_data) do
     %{error: "Unknown algorithm"}
+  end
+
+  # Helper function to calculate confirmations
+  defp get_confirmations(node) do
+    # Assuming get_block_height() is available and returns the current block height.
+    # If not, this needs to be implemented or passed in.
+    current_height = Reoxt.Blockchain.get_block_height()
+
+    # If confirmations field exists and is valid, use it. Otherwise, calculate.
+    case Map.get(node, :confirmations) do
+      nil ->
+        block_height = Map.get(node, :block_height)
+        if is_integer(block_height) && is_integer(current_height) && block_height <= current_height do
+          current_height - block_height
+        else
+          0 # Default to 0 if block_height is missing or invalid
+        end
+      confirmations ->
+        confirmations # Use the existing confirmations if available
+    end
   end
 end
