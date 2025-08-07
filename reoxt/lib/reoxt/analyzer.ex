@@ -200,7 +200,9 @@ defmodule Reoxt.Analyzer do
       {nodes, edges, visited}
     else
       visited = MapSet.put(visited, transaction.txid)
-      nodes = [transaction | nodes]
+      # Preload associations to avoid JSON encoding errors
+      preloaded_transaction = Repo.preload(transaction, [:inputs, :outputs])
+      nodes = [preloaded_transaction | nodes]
       
       # Only traverse connections if we have remaining depth
       if depth > 0 do
