@@ -8,7 +8,8 @@ defmodule Reoxt.Transactions.TransactionInput do
     field :script_sig, :string
     field :sequence, :integer
     field :value, :integer
-    field :transaction_id, :id
+
+    belongs_to :transaction, Reoxt.Transactions.Transaction
 
     timestamps(type: :utc_datetime)
   end
@@ -16,7 +17,7 @@ defmodule Reoxt.Transactions.TransactionInput do
   @doc false
   def changeset(transaction_input, attrs) do
     transaction_input
-    |> cast(attrs, [:txid, :vout, :script_sig, :sequence, :value])
-    |> validate_required([:txid, :vout, :script_sig, :sequence, :value])
+    |> cast(attrs, [:txid, :vout, :script_sig, :sequence, :value, :transaction_id])
+    |> validate_required([:txid, :vout, :script_sig, :sequence, :value, :transaction_id])
   end
 end

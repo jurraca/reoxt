@@ -8,7 +8,8 @@ defmodule Reoxt.Transactions.TransactionOutput do
     field :script_pub_key, :string
     field :address, :string
     field :type, :string
-    field :transaction_id, :id
+
+    belongs_to :transaction, Reoxt.Transactions.Transaction
 
     timestamps(type: :utc_datetime)
   end
@@ -16,7 +17,7 @@ defmodule Reoxt.Transactions.TransactionOutput do
   @doc false
   def changeset(transaction_output, attrs) do
     transaction_output
-    |> cast(attrs, [:value, :n, :script_pub_key, :address, :type])
-    |> validate_required([:value, :n, :script_pub_key, :address, :type])
+    |> cast(attrs, [:value, :n, :script_pub_key, :address, :type, :transaction_id])
+    |> validate_required([:value, :n, :script_pub_key, :address, :type, :transaction_id])
   end
 end

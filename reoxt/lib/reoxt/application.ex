@@ -14,6 +14,9 @@ defmodule Reoxt.Application do
        repos: Application.fetch_env!(:reoxt, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:reoxt, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Reoxt.PubSub},
+      # Start Bitcoin RPC client and transaction fetcher
+      Reoxt.BitcoinRpcClient,
+      Reoxt.TransactionFetcher,
       # Start a worker by calling: Reoxt.Worker.start_link(arg)
       # {Reoxt.Worker, arg},
       # Start to serve requests, typically the last entry

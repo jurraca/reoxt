@@ -11,6 +11,9 @@ defmodule Reoxt.Transactions.Transaction do
     field :version, :integer
     field :locktime, :integer
 
+    has_many :inputs, Reoxt.Transactions.TransactionInput, foreign_key: :transaction_id
+    has_many :outputs, Reoxt.Transactions.TransactionOutput, foreign_key: :transaction_id
+
     timestamps(type: :utc_datetime)
   end
 
