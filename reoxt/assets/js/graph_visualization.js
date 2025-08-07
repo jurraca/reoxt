@@ -28,7 +28,8 @@ const GraphVisualization = {
       .append("svg")
       .attr("width", width)
       .attr("height", height)
-      .style("background-color", "#f8f9fa");
+      .style("background", "linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 100%)")
+      .style("border-radius", "8px");
 
     // Create groups for different elements
     this.linkGroup = this.svg.append("g").attr("class", "links");
@@ -80,9 +81,10 @@ const GraphVisualization = {
 
     const linkEnter = link.enter()
       .append("line")
-      .attr("stroke", "#999")
-      .attr("stroke-opacity", 0.6)
-      .attr("stroke-width", d => Math.sqrt(d.value) || 1);
+      .attr("stroke", "#39ff14")
+      .attr("stroke-opacity", 0.7)
+      .attr("stroke-width", d => Math.max(Math.sqrt(d.value) || 1, 2))
+      .style("filter", "drop-shadow(0 0 4px #39ff14)");
 
     const linkUpdate = linkEnter.merge(link);
 
@@ -101,20 +103,23 @@ const GraphVisualization = {
     nodeEnter.append("circle")
       .attr("r", d => this.getNodeRadius(d))
       .attr("fill", d => this.getNodeColor(d))
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 2);
+      .attr("stroke", d => this.getNodeStrokeColor(d))
+      .attr("stroke-width", 3)
+      .style("filter", d => `drop-shadow(0 0 8px ${this.getNodeColor(d)})`);
 
     // Add labels
     nodeEnter.append("text")
       .attr("dx", 12)
       .attr("dy", ".35em")
-      .style("font-size", "10px")
-      .style("fill", "#333")
+      .style("font-size", "11px")
+      .style("fill", "#e5e5e5")
+      .style("font-weight", "500")
+      .style("text-shadow", "0 0 4px rgba(57, 255, 20, 0.3)")
       .text(d => d.txid.substring(0, 8) + "...");
 
     // Add tooltips
     nodeEnter.append("title")
-      .text(d => `TX: ${d.txid}\nValue: ${d.total_output_value || 0}\nConfirmations: ${d.confirmations || 0}`);
+      .text(d => `TX: ${d.txid}\nValue: ${this.formatValue(d.total_output_value || 0)} BTC\nConfirmations: ${d.confirmations || 0}`);
 
     const nodeUpdate = nodeEnter.merge(node);
 
@@ -150,18 +155,37 @@ const GraphVisualization = {
   },
 
   getNodeColor(node) {
-    // Color based on confirmations and value
+    // Color based on confirmations and value with neon theme
     const confirmations = node.confirmations || 0;
     const value = node.total_output_value || 0;
 
     if (confirmations === 0) {
-      return "#ef4444"; // Red for unconfirmed
+      return "#ff1493"; // Neon pink for unconfirmed
     } else if (value > 100000000) { // > 1 BTC
-      return "#22c55e"; // Green for high value
+      return "#39ff14"; // Neon green for high value
     } else if (confirmations < 6) {
-      return "#f59e0b"; // Orange for low confirmations
+      return "#00ffff"; // Neon cyan for low confirmations
     }
-    return "#3b82f6"; // Blue for normal transactions
+    return "#bf00ff"; // Neon purple for normal transactions
+  },
+
+  getNodeStrokeColor(node) {
+    // Matching stroke colors with higher opacity
+    const confirmations = node.confirmations || 0;
+    const value = node.total_output_value || 0;
+
+    if (confirmations === 0) {
+      return "#ff69b4"; // Lighter pink stroke
+    } else if (value > 100000000) {
+      return "#7fff00"; // Lighter green stroke
+    } else if (confirmations < 6) {
+      return "#87ceeb"; // Lighter cyan stroke
+    }
+    return "#da70d6"; // Lighter purple stroke
+  },
+
+  formatValue(satoshis) {
+    return (satoshis / 100000000).toFixed(8);
   },
 
   clearGraph() {

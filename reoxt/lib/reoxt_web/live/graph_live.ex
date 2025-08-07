@@ -1,4 +1,3 @@
-
 defmodule ReoxtWeb.GraphLive do
   use ReoxtWeb, :live_view
 
@@ -35,7 +34,7 @@ defmodule ReoxtWeb.GraphLive do
   def handle_event("search_graph", %{"search" => %{"txid" => txid, "depth" => depth}}, socket) do
     cleaned_txid = String.trim(txid)
     depth = String.to_integer(depth)
-    
+
     # Validate input before proceeding
     case validate_transaction_id(cleaned_txid) do
       :ok ->
@@ -48,17 +47,17 @@ defmodule ReoxtWeb.GraphLive do
 
         send(self(), {:load_graph, cleaned_txid})
         {:noreply, socket}
-      
+
       {:error, reason} ->
         error_message = format_error_message(reason, cleaned_txid)
-        
+
         socket = 
           socket
           |> assign(:selected_txid, cleaned_txid)
           |> assign(:search_depth, depth)
           |> assign(:loading, false)
           |> assign(:error, error_message)
-        
+
         {:noreply, socket}
     end
   end
@@ -68,15 +67,15 @@ defmodule ReoxtWeb.GraphLive do
     case socket.assigns.graph_data do
       nil ->
         {:noreply, put_flash(socket, :error, "Please load a graph first")}
-      
+
       graph_data ->
         result = run_graph_algorithm(algorithm, graph_data)
-        
+
         socket = 
           socket
           |> assign(:selected_algorithm, algorithm)
           |> assign(:algorithm_result, result)
-        
+
         {:noreply, socket}
     end
   end
@@ -96,8 +95,8 @@ defmodule ReoxtWeb.GraphLive do
   def handle_info({:load_graph, txid}, socket) do
     case build_transaction_graph(txid, socket.assigns.search_depth) do
       {:ok, graph_data} ->
-        stats = [] #calculate_graph_stats(graph_data)
-        
+        stats = calculate_graph_stats(graph_data)
+
         socket = 
           socket
           |> assign(:loading, false)
@@ -110,7 +109,7 @@ defmodule ReoxtWeb.GraphLive do
 
       {:error, reason} ->
         error_message = format_error_message(reason, txid)
-        
+
         socket = 
           socket
           |> assign(:loading, false)
@@ -125,24 +124,37 @@ defmodule ReoxtWeb.GraphLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="container mx-auto p-6">
-      <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">Transaction Graph Visualization</h1>
-        <p class="text-gray-600 mt-2">
-          Visualize Bitcoin transaction relationships and analyze network patterns
-        </p>
+    <div class="container mx-auto px-4 py-6">
+      <h1 class="text-4xl font-bold mb-8 text-center neon-pulse" style="color: #39ff14; text-shadow: 0 0 20px #39ff14;">
+        Bitcoin Transaction Graph
+      </h1>
+
+      <div class="mb-8 text-center">
+        <button 
+          phx-click="search_graph"
+          class="btn btn-primary mr-4 px-6 py-3 text-lg"
+        >
+          <span class="mr-2">🔍</span> Search Graph
+        </button>
+
+        <button 
+          phx-click="clear_graph"
+          class="btn btn-secondary px-6 py-3 text-lg"
+        >
+          <span class="mr-2">🗑️</span> Clear Graph
+        </button>
       </div>
 
       <!-- Search Controls -->
-      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div class="bg-base-200 rounded-lg shadow-lg p-6 mb-8">
         <.form 
           for={%{}}
           as={:search}
           phx-submit="search_graph"
-          class="flex gap-4 items-end"
+          class="flex flex-wrap gap-4 items-end justify-center"
         >
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+          <div class="flex-1 min-w-[250px]">
+            <label class="block text-sm font-medium text-gray-300 mb-2">
               Transaction ID
             </label>
             <input
@@ -150,18 +162,20 @@ defmodule ReoxtWeb.GraphLive do
               name="search[txid]"
               value={@selected_txid}
               placeholder="Enter transaction hash..."
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-cyan"
+              style="background-color: #1a1a1a; color: #e0e0e0;"
               required
             />
           </div>
-          
+
           <div class="w-32">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="block text-sm font-medium text-gray-300 mb-2">
               Depth
             </label>
             <select
               name="search[depth]"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-cyan"
+              style="background-color: #1a1a1a; color: #e0e0e0;"
             >
               <option value="1" selected={@search_depth == 1}>1</option>
               <option value="2" selected={@search_depth == 2}>2</option>
@@ -170,19 +184,19 @@ defmodule ReoxtWeb.GraphLive do
               <option value="5" selected={@search_depth == 5}>5</option>
             </select>
           </div>
-          
+
           <button
             type="submit"
             disabled={@loading}
-            class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-6 py-3 bg-neon-green text-black font-bold rounded-lg hover:bg-neon-green-dark disabled:opacity-50 disabled:cursor-not-allowed transition duration-300 ease-in-out"
           >
             {if @loading, do: "Loading...", else: "Search"}
           </button>
-          
+
           <button
             type="button"
             phx-click="clear_graph"
-            class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+            class="px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition duration-300 ease-in-out"
           >
             Clear
           </button>
@@ -199,30 +213,10 @@ defmodule ReoxtWeb.GraphLive do
               </svg>
             </div>
             <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">Transaction Not Found</h3>
+              <h3 class="text-sm font-medium text-red-800">Error</h3>
               <div class="mt-2 text-sm text-red-700">
                 <%= @error %>
               </div>
-              <%= if String.contains?(@error, "not found") do %>
-                <div class="mt-3 text-sm text-red-600">
-                  <p class="font-medium">Suggestions:</p>
-                  <ul class="mt-1 list-disc list-inside space-y-1">
-                    <li>Verify the transaction ID is correct (64 hexadecimal characters)</li>
-                    <li>Check if the transaction has been confirmed on the blockchain</li>
-                    <li>Try a different transaction ID</li>
-                  </ul>
-                </div>
-              <% end %>
-              <%= if String.contains?(@error, "connection") or String.contains?(@error, "RPC") do %>
-                <div class="mt-3 text-sm text-red-600">
-                  <p class="font-medium">Connection Issue:</p>
-                  <ul class="mt-1 list-disc list-inside space-y-1">
-                    <li>Check your Bitcoin node is running</li>
-                    <li>Verify RPC credentials are configured correctly</li>
-                    <li>Ensure network connectivity to the Bitcoin node</li>
-                  </ul>
-                </div>
-              <% end %>
             </div>
           </div>
         </div>
@@ -232,22 +226,22 @@ defmodule ReoxtWeb.GraphLive do
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Graph Visualization -->
         <div class="lg:col-span-3">
-          <div class="bg-white rounded-lg shadow-md">
-            <div class="p-4 border-b border-gray-200">
-              <h2 class="text-lg font-semibold">Transaction Network</h2>
+          <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
+            <div class="p-4 border-b border-gray-700">
+              <h2 class="text-lg font-semibold" style="color: #00ffff;">Transaction Network</h2>
             </div>
             <div class="p-4">
               <div
                 id="graph-container"
                 phx-hook="GraphVisualization"
-                class="w-full h-96 border border-gray-300 rounded"
-                style="min-height: 600px;"
+                class="w-full h-[600px] rounded-lg"
+                style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a); border: 2px solid rgba(57, 255, 20, 0.3);"
               >
                 <%= if @loading do %>
                   <div class="flex items-center justify-center h-full">
                     <div class="text-center">
-                      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                      <p class="mt-2 text-gray-600">Loading graph...</p>
+                      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-green mx-auto"></div>
+                      <p class="mt-2 text-gray-400">Loading graph...</p>
                     </div>
                   </div>
                 <% else %>
@@ -257,7 +251,7 @@ defmodule ReoxtWeb.GraphLive do
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">No graph loaded</h3>
+                        <h3 class="mt-2 text-sm font-medium text-gray-300">No graph loaded</h3>
                         <p class="mt-1 text-sm text-gray-500">Enter a transaction ID to visualize the network</p>
                       </div>
                     </div>
@@ -272,24 +266,24 @@ defmodule ReoxtWeb.GraphLive do
         <div class="space-y-6">
           <!-- Graph Statistics -->
           <%= if @graph_data do %>
-            <div class="bg-white rounded-lg shadow-md p-4">
-              <h3 class="text-lg font-semibold mb-3">Graph Statistics</h3>
+            <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
+              <h3 class="text-lg font-semibold mb-3" style="color: #00ffff;">Graph Statistics</h3>
               <div class="space-y-2 text-sm">
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Transactions:</span>
-                  <span class="font-medium"><%= @graph_stats[:transaction_count] || 0 %></span>
+                <div class="flex justify-between text-gray-300">
+                  <span>Transactions:</span>
+                  <span class="font-medium neon-pulse"><%= @graph_stats.transaction_count || 0 %></span>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Connections:</span>
-                  <span class="font-medium"><%= @graph_stats[:edge_count] || 0 %></span>
+                <div class="flex justify-between text-gray-300">
+                  <span>Connections:</span>
+                  <span class="font-medium neon-pulse"><%= @graph_stats.edge_count || 0 %></span>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Total Value:</span>
-                  <span class="font-medium"><%= @graph_stats[:total_value] || "0" %> BTC</span>
+                <div class="flex justify-between text-gray-300">
+                  <span>Total Value:</span>
+                  <span class="font-medium neon-pulse"><%= @graph_stats.total_value || "0" %> BTC</span>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Avg. Confirmations:</span>
-                  <span class="font-medium"><%= @graph_stats[:avg_confirmations] || 0 %></span>
+                <div class="flex justify-between text-gray-300">
+                  <span>Avg. Confirmations:</span>
+                  <span class="font-medium neon-pulse"><%= @graph_stats.avg_confirmations || 0 %></span>
                 </div>
               </div>
             </div>
@@ -297,17 +291,18 @@ defmodule ReoxtWeb.GraphLive do
 
           <!-- Graph Algorithms -->
           <%= if @graph_data do %>
-            <div class="bg-white rounded-lg shadow-md p-4">
-              <h3 class="text-lg font-semibold mb-3">Graph Analysis</h3>
-              
+            <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
+              <h3 class="text-lg font-semibold mb-3" style="color: #bf00ff;">Graph Analysis</h3>
+
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label class="block text-sm font-medium text-gray-300 mb-2">
                   Algorithm
                 </label>
                 <select
                   phx-change="run_algorithm"
                   name="algorithm"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-purple"
+                  style="background-color: #1a1a1a; color: #e0e0e0;"
                 >
                   <option value="centrality" selected={@selected_algorithm == "centrality"}>
                     Centrality Analysis
@@ -326,9 +321,9 @@ defmodule ReoxtWeb.GraphLive do
 
               <%= if @algorithm_result do %>
                 <div class="text-sm">
-                  <h4 class="font-medium mb-2">Results:</h4>
-                  <div class="bg-gray-50 rounded p-2 max-h-32 overflow-y-auto">
-                    <pre class="text-xs"><%= inspect(@algorithm_result, pretty: true, limit: :infinity) %></pre>
+                  <h4 class="font-medium mb-2 text-gray-300">Results:</h4>
+                  <div class="bg-base-300 rounded p-3 max-h-32 overflow-y-auto" style="background-color: #1f1f1f;">
+                    <pre class="text-xs text-gray-400"><%= inspect(@algorithm_result, pretty: true, limit: :infinity) %></pre>
                   </div>
                 </div>
               <% end %>
@@ -336,24 +331,24 @@ defmodule ReoxtWeb.GraphLive do
           <% end %>
 
           <!-- Legend -->
-          <div class="bg-white rounded-lg shadow-md p-4">
-            <h3 class="text-lg font-semibold mb-3">Legend</h3>
+          <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
+            <h3 class="text-lg font-semibold mb-3" style="color: #ff1493;">Legend</h3>
             <div class="space-y-2 text-sm">
               <div class="flex items-center">
-                <div class="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
-                <span>Transaction</span>
+                <div class="w-3 h-3 rounded-full mr-2" style="background: #ff1493; box-shadow: 0 0 8px #ff1493;"></div>
+                <span class="text-gray-300">Unconfirmed</span>
               </div>
               <div class="flex items-center">
-                <div class="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                <span>High Value (>1 BTC)</span>
+                <div class="w-3 h-3 rounded-full mr-2" style="background: #39ff14; box-shadow: 0 0 8px #39ff14;"></div>
+                <span class="text-gray-300">High Value (&gt;1 BTC)</span>
               </div>
               <div class="flex items-center">
-                <div class="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
-                <span>Unconfirmed</span>
+                <div class="w-3 h-3 rounded-full mr-2" style="background: #00ffff; box-shadow: 0 0 8px #00ffff;"></div>
+                <span class="text-gray-300">Low Confirmations</span>
               </div>
               <div class="flex items-center">
-                <div class="w-4 h-1 bg-gray-400 mr-2"></div>
-                <span>Transaction Flow</span>
+                <div class="w-3 h-3 rounded-full mr-2" style="background: #bf00ff; box-shadow: 0 0 8px #bf00ff;"></div>
+                <span class="text-gray-300">Normal</span>
               </div>
             </div>
           </div>
@@ -384,7 +379,7 @@ defmodule ReoxtWeb.GraphLive do
           :error, reason ->
             {:error, reason}
         end
-      
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -392,17 +387,17 @@ defmodule ReoxtWeb.GraphLive do
 
   defp validate_transaction_id(txid) when is_binary(txid) do
     cleaned_txid = String.trim(txid)
-    
+
     cond do
       cleaned_txid == "" ->
         {:error, :empty_txid}
-      
+
       byte_size(cleaned_txid) != 64 ->
         {:error, :invalid_length}
-      
+
       not Regex.match?(~r/^[a-fA-F0-9]{64}$/, cleaned_txid) ->
         {:error, :invalid_format}
-      
+
       true ->
         :ok
     end
@@ -414,46 +409,46 @@ defmodule ReoxtWeb.GraphLive do
     case reason do
       :empty_txid ->
         "Please enter a transaction ID."
-      
+
       :invalid_length ->
         "Transaction ID must be exactly 64 characters long. You entered #{byte_size(String.trim(txid))} characters."
-      
+
       :invalid_format ->
         "Transaction ID must contain only hexadecimal characters (0-9, a-f, A-F)."
-      
+
       :invalid_type ->
         "Invalid transaction ID format."
-      
+
       %{message: message} when is_binary(message) ->
         cond do
           String.contains?(message, "not found") or String.contains?(message, "No such") ->
             "Transaction '#{String.slice(txid, 0, 8)}...' not found. Please verify the transaction ID and try again."
-          
+
           String.contains?(message, "connection") ->
             "Unable to connect to Bitcoin node. Please check your RPC configuration."
-          
+
           String.contains?(message, "unauthorized") ->
             "Authentication failed. Please check your RPC credentials."
-          
+
           true ->
             "Error: #{message}"
         end
-      
+
       error when is_atom(error) ->
         case error do
           :not_found ->
             "Transaction '#{String.slice(txid, 0, 8)}...' not found in the blockchain."
-          
+
           :connection_error ->
             "Unable to connect to Bitcoin node. Please check your network connection."
-          
+
           :timeout ->
             "Request timed out. The Bitcoin node may be busy."
-          
+
           _ ->
             "An unexpected error occurred: #{error}"
         end
-      
+
       %{__exception__: true} = exception ->
         case exception do
           %RuntimeError{message: message} ->
@@ -462,11 +457,11 @@ defmodule ReoxtWeb.GraphLive do
             else
               "Error: #{message}"
             end
-          
+
           _ ->
             "An error occurred while fetching transaction data."
         end
-      
+
       _ ->
         "Failed to load transaction graph. Please try again with a valid transaction ID."
     end
@@ -475,7 +470,7 @@ defmodule ReoxtWeb.GraphLive do
   defp calculate_graph_stats(graph_data) do
     transaction_count = length(graph_data.nodes)
     edge_count = length(graph_data.edges)
-    
+
     total_value = 
       graph_data.nodes
       |> Enum.map(& &1.total_output_value)
