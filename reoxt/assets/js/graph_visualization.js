@@ -1,19 +1,40 @@
 
-import * as d3 from "d3";
-
+// Import D3 from CDN since the npm import isn't working
+// We'll load it dynamically to ensure it's available
 const GraphVisualization = {
   mounted() {
     console.log('GraphVisualization hook mounted');
-    this.initializeGraph();
+    
+    // Load D3 dynamically if not already loaded
+    this.loadD3().then(() => {
+      this.initializeGraph();
 
-    // Listen for graph data updates from LiveView
-    this.handleEvent("render_graph", (data) => {
-      console.log('Received render_graph event:', data);
-      this.renderGraph(data.graph_data);
+      // Listen for graph data updates from LiveView
+      this.handleEvent("render_graph", (data) => {
+        console.log('Received render_graph event:', data);
+        this.renderGraph(data.graph_data);
+      });
+
+      this.handleEvent("clear_graph", () => {
+        this.clearGraph();
+      });
     });
+  },
 
-    this.handleEvent("clear_graph", () => {
-      this.clearGraph();
+  loadD3() {
+    return new Promise((resolve) => {
+      if (typeof d3 !== 'undefined') {
+        resolve();
+        return;
+      }
+      
+      const script = document.createElement('script');
+      script.src = 'https://d3js.org/d3.v7.min.js';
+      script.onload = () => {
+        console.log('D3 loaded successfully');
+        resolve();
+      };
+      document.head.appendChild(script);
     });
   },
 
@@ -27,22 +48,28 @@ const GraphVisualization = {
     // Clear any existing content
     container.innerHTML = '';
 
-    // Create SVG using D3's create method like the example
-    this.svg = d3.select(container)
-      .append("svg")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", [0, 0, width, height])
-      .style("background", "#0a0a0a")
-      .style("border-radius", "8px")
-      .style("max-width", "100%")
-      .style("height", "auto");
+    // Create SVG element directly and then select it with D3
+    const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svgElement.setAttribute("width", width);
+    svgElement.setAttribute("height", height);
+    svgElement.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svgElement.style.background = "#0a0a0a";
+    svgElement.style.borderRadius = "8px";
+    svgElement.style.maxWidth = "100%";
+    svgElement.style.height = "auto";
+    svgElement.style.border = "1px solid #39ff14"; // Add border to see the SVG
+    
+    container.appendChild(svgElement);
+
+    // Now select with D3
+    this.svg = d3.select(svgElement);
 
     // Store dimensions for later use
     this.width = width;
     this.height = height;
 
     console.log('Graph initialized with dimensions:', { width, height });
+    console.log('SVG element created:', svgElement);
   },
 
   renderGraph(graphData) {
