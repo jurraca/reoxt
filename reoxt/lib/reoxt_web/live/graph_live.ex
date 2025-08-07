@@ -126,7 +126,7 @@ defmodule ReoxtWeb.GraphLive do
     ~H"""
     <div class="container mx-auto px-4 py-6">
       <h1 class="text-4xl font-bold mb-8 text-center" style="color: #bf40ff; text-shadow: 0 0 20px #bf40ff;">
-        Bitcoin Transaction Graph
+        reoxt 
       </h1>
 
       <div class="mb-8 text-center">
