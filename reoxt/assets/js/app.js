@@ -18,7 +18,7 @@
 // To load it, simply add a second `<link>` to your `root.html.heex` file.
 
 import {ColocatedHooks} from "../deps/phoenix_live_view/assets/js/phoenix_live_view/index"
-import GraphVisualization from "./graph_visualization.js"
+import GraphVisualization from "./graph_visualization"
 
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
