@@ -195,41 +195,43 @@ defmodule Reoxt.Analyzer do
 
   # Private helper functions
 
-  defp traverse_transaction_graph(transaction, 0, visited, nodes, edges) do
-    {[transaction | nodes], edges, visited}
-  end
-
-  defp traverse_transaction_graph(transaction, depth, visited, nodes, edges) when depth > 0 do
+  defp traverse_transaction_graph(transaction, depth, visited, nodes, edges) do
     if MapSet.member?(visited, transaction.txid) do
       {nodes, edges, visited}
     else
       visited = MapSet.put(visited, transaction.txid)
       nodes = [transaction | nodes]
       
-      # Get input transactions (what this transaction spends from)
-      input_transactions = get_input_transactions(transaction)
-      
-      # Get output transactions (what spends from this transaction)
-      output_transactions = get_output_transactions(transaction)
-      
-      # Add edges for inputs
-      input_edges = Enum.map(input_transactions, fn input_tx ->
-        %{from: input_tx.txid, to: transaction.txid, type: :spends}
-      end)
-      
-      # Add edges for outputs
-      output_edges = Enum.map(output_transactions, fn output_tx ->
-        %{from: transaction.txid, to: output_tx.txid, type: :spent_by}
-      end)
-      
-      edges = edges ++ input_edges ++ output_edges
-      
-      # Recursively traverse connected transactions
-      connected_transactions = input_transactions ++ output_transactions
-      
-      Enum.reduce(connected_transactions, {nodes, edges, visited}, fn tx, {acc_nodes, acc_edges, acc_visited} ->
-        traverse_transaction_graph(tx, depth - 1, acc_visited, acc_nodes, acc_edges)
-      end)
+      # Only traverse connections if we have remaining depth
+      if depth > 0 do
+        # Get input transactions (what this transaction spends from)
+        input_transactions = get_input_transactions(transaction)
+        
+        # Get output transactions (what spends from this transaction)
+        output_transactions = get_output_transactions(transaction)
+        
+        # Add edges for inputs
+        input_edges = Enum.map(input_transactions, fn input_tx ->
+          %{from: input_tx.txid, to: transaction.txid, type: :spends}
+        end)
+        
+        # Add edges for outputs
+        output_edges = Enum.map(output_transactions, fn output_tx ->
+          %{from: transaction.txid, to: output_tx.txid, type: :spent_by}
+        end)
+        
+        edges = edges ++ input_edges ++ output_edges
+        
+        # Recursively traverse connected transactions with reduced depth
+        connected_transactions = input_transactions ++ output_transactions
+        
+        Enum.reduce(connected_transactions, {nodes, edges, visited}, fn tx, {acc_nodes, acc_edges, acc_visited} ->
+          traverse_transaction_graph(tx, depth - 1, acc_visited, acc_nodes, acc_edges)
+        end)
+      else
+        # At depth 0, just return current state without traversing further
+        {nodes, edges, visited}
+      end
     end
   end
 
