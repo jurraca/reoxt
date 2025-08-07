@@ -369,8 +369,12 @@ defmodule ReoxtWeb.GraphLive do
     case validate_transaction_id(txid) do
       :ok ->
         try do
-          graph_data = Analyzer.build_transaction_graph(txid, depth)
-          {:ok, graph_data}
+          case Analyzer.build_transaction_graph(txid, depth) do
+            {:error, reason} ->
+              {:error, reason}
+            graph_data when is_map(graph_data) ->
+              {:ok, graph_data}
+          end
         rescue
           error ->
             {:error, error}

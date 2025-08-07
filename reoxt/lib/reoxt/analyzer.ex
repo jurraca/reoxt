@@ -134,7 +134,7 @@ defmodule Reoxt.Analyzer do
           edges
         )
         
-        {:ok, %{nodes: nodes, edges: edges}}
+        %{nodes: nodes, edges: edges}
     end
   end
 
