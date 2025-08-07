@@ -64,62 +64,97 @@ const GraphVisualization = {
 
     console.log("Rendering graph:", graphData.nodes.length, "nodes,", graphData.edges.length, "edges");
 
-    // Prepare data
-    const nodes = graphData.nodes.map(d => ({ ...d, id: d.txid }));
-    const links = graphData.edges.map(d => ({ source: d.from, target: d.to }));
+    // Prepare data with proper structure
+    const nodes = graphData.nodes.map(d => ({ 
+      ...d, 
+      id: d.txid,
+      x: Math.random() * 400 + 200,
+      y: Math.random() * 300 + 150
+    }));
 
-    // Update simulation
-    this.simulation
-      .nodes(nodes)
-      .force("link").links(links);
+    const links = graphData.edges.map(d => ({ 
+      source: d.from, 
+      target: d.to,
+      type: d.type || 'default'
+    }));
 
-    // Render links
-    const link = this.linkGroup
+    console.log("Processed nodes:", nodes.length);
+    console.log("Processed links:", links.length);
+
+    // Store data references for tick function
+    this.currentNodes = nodes;
+    this.currentLinks = links;
+
+    // Update simulation data
+    this.simulation.nodes(nodes);
+    this.simulation.force("link").links(links);
+
+    // Use D3's general update pattern for links
+    const linkSelection = this.linkGroup
       .selectAll("line")
-      .data(links);
+      .data(links, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
 
-    link.enter()
+    // Remove old links
+    linkSelection.exit().remove();
+
+    // Add new links
+    const linkEnter = linkSelection.enter()
       .append("line")
       .attr("stroke", "#39ff14")
       .attr("stroke-opacity", 0.6)
       .attr("stroke-width", 2);
 
-    link.exit().remove();
+    // Merge enter + update selections
+    this.linkElements = linkEnter.merge(linkSelection);
 
-    // Render nodes
-    const node = this.nodeGroup
-      .selectAll("circle")
-      .data(nodes);
+    // Use D3's general update pattern for nodes
+    const nodeSelection = this.nodeGroup
+      .selectAll("g.node")
+      .data(nodes, d => d.id);
 
-    const nodeEnter = node.enter()
-      .append("circle")
+    // Remove old nodes
+    nodeSelection.exit().remove();
+
+    // Add new nodes
+    const nodeEnter = nodeSelection.enter()
+      .append("g")
+      .attr("class", "node")
+      .call(this.drag());
+
+    // Add circle to new nodes
+    nodeEnter.append("circle")
       .attr("r", 8)
       .attr("fill", "#bf00ff")
       .attr("stroke", "#da70d6")
-      .attr("stroke-width", 2)
-      .call(this.drag());
+      .attr("stroke-width", 2);
 
-    // Add tooltips
+    // Add tooltips to new nodes
     nodeEnter.append("title")
       .text(d => `TX: ${d.txid.substring(0, 16)}...`);
 
-    node.exit().remove();
+    // Merge enter + update selections
+    this.nodeElements = nodeEnter.merge(nodeSelection);
 
-    // Update simulation tick
+    // Update tick function with stored references
     this.simulation.on("tick", () => {
-      this.linkGroup.selectAll("line")
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+      if (this.linkElements) {
+        this.linkElements
+          .attr("x1", d => d.source.x || 0)
+          .attr("y1", d => d.source.y || 0)
+          .attr("x2", d => d.target.x || 0)
+          .attr("y2", d => d.target.y || 0);
+      }
 
-      this.nodeGroup.selectAll("circle")
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
+      if (this.nodeElements) {
+        this.nodeElements
+          .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
+      }
     });
 
-    // Restart simulation
-    this.simulation.alpha(1).restart();
+    console.log("Starting simulation with", nodes.length, "nodes and", links.length, "links");
+
+    // Restart simulation with higher alpha for better initial layout
+    this.simulation.alpha(0.8).restart();
   },
 
   drag() {
