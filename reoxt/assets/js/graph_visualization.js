@@ -40,10 +40,13 @@ const GraphVisualization = {
   },
 
   initializeGraph() {
+    console.log('Initializing graph...');
     // Set up the SVG container
     const container = this.el;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const width = container.clientWidth || 800; // Fallback width
+    const height = container.clientHeight || 600; // Fallback height
+
+    console.log('Container dimensions:', { width, height });
 
     // Clear any existing content
     container.innerHTML = '';
@@ -76,6 +79,12 @@ const GraphVisualization = {
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collision", d3.forceCollide().radius(30));
+
+    // Store dimensions for later use
+    this.width = width;
+    this.height = height;
+
+    console.log('Graph initialization complete');
   },
 
   renderGraph(graphData) {
@@ -84,17 +93,24 @@ const GraphVisualization = {
       return;
     }
 
+    if (!this.svg) {
+      console.error("SVG not initialized, reinitializing...");
+      this.initializeGraph();
+    }
+
     // Store current height for confirmations calculation
     this.currentHeight = graphData.current_height || 800000;
 
     console.log("Rendering graph with data:", graphData);
+    console.log("Number of nodes:", graphData.nodes.length);
+    console.log("Number of edges:", graphData.edges.length);
 
     // Process nodes and links
     const nodes = graphData.nodes.map(node => ({
       ...node,
       id: node.txid,
-      x: Math.random() * this.svg.attr("width"),
-      y: Math.random() * this.svg.attr("height")
+      x: Math.random() * (this.width || 800),
+      y: Math.random() * (this.height || 600)
     }));
 
     const links = graphData.edges.map(edge => ({
@@ -128,18 +144,23 @@ const GraphVisualization = {
 
     const nodeEnter = node.enter()
       .append("g")
+      .attr("class", "node")
       .call(this.drag(this.simulation));
 
+    console.log("Created node groups:", nodeEnter.size());
+
     // Add circles for nodes
-    nodeEnter.append("circle")
+    const circles = nodeEnter.append("circle")
       .attr("r", d => this.getNodeRadius(d))
       .attr("fill", d => this.getNodeColor(d))
       .attr("stroke", d => this.getNodeStrokeColor(d))
       .attr("stroke-width", 3)
       .style("filter", d => `drop-shadow(0 0 8px ${this.getNodeColor(d)})`);
 
+    console.log("Created circles:", circles.size());
+
     // Add labels
-    nodeEnter.append("text")
+    const labels = nodeEnter.append("text")
       .attr("dx", 12)
       .attr("dy", ".35em")
       .style("font-size", "11px")
@@ -148,11 +169,14 @@ const GraphVisualization = {
       .style("text-shadow", "0 0 4px rgba(57, 255, 20, 0.3)")
       .text(d => d.txid.substring(0, 8) + "...");
 
+    console.log("Created labels:", labels.size());
+
     // Add tooltips
     nodeEnter.append("title")
       .text(d => `TX: ${d.txid}\nValue: ${this.formatValue(d.total_output_value || 0)} BTC\nConfirmations: ${this.getConfirmations(d)}`);
 
     const nodeUpdate = nodeEnter.merge(node);
+    console.log("Total nodes after merge:", nodeUpdate.size());
 
     // Update simulation
     this.simulation
@@ -168,7 +192,12 @@ const GraphVisualization = {
           .attr("transform", d => `translate(${d.x},${d.y})`);
       });
 
+    // Update center force with correct dimensions
+    this.simulation
+      .force("center", d3.forceCenter((this.width || 800) / 2, (this.height || 600) / 2));
+
     this.simulation.force("link").links(links);
+    console.log("Starting simulation with", nodes.length, "nodes and", links.length, "links");
     this.simulation.alpha(1).restart();
   },
 
