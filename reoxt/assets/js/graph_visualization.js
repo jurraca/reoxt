@@ -18,6 +18,7 @@ const GraphVisualization = {
 
   initializeGraph() {
     const container = this.el;
+    console.log("this", container)
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 600;
 
