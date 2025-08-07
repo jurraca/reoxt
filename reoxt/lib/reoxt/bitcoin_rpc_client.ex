@@ -46,6 +46,13 @@ defmodule Reoxt.BitcoinRpcClient do
     GenServer.call(__MODULE__, :get_best_block_hash)
   end
 
+  @doc """
+  Gets the latest block height
+  """
+  def get_best_block do
+    GenServer.call(__MODULE__, :get_best_block)
+  end
+
   ## GenServer Callbacks
 
   @impl true
@@ -84,6 +91,12 @@ defmodule Reoxt.BitcoinRpcClient do
   @impl true
   def handle_call(:get_best_block_hash, _from, state) do
     result = rpc_call("getbestblockhash", [], state.config)
+    {:reply, result, state}
+  end
+
+  @impl true
+  def handle_call(:get_best_block, _from, state) do
+    result = rpc_call("getblockcount", [], state.config)
     {:reply, result, state}
   end
 

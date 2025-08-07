@@ -523,7 +523,7 @@ defmodule ReoxtWeb.GraphLive do
   defp get_confirmations(node) do
     # Assuming get_block_height() is available and returns the current block height.
     # If not, this needs to be implemented or passed in.
-    current_height = Reoxt.Blockchain.get_block_height()
+    current_height = Reoxt.BitcoinRpcClient.get_best_block()
 
     # If confirmations field exists and is valid, use it. Otherwise, calculate.
     case Map.get(node, :confirmations) do
