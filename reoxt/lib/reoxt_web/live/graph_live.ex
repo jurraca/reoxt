@@ -33,18 +33,34 @@ defmodule ReoxtWeb.GraphLive do
 
   @impl true
   def handle_event("search_graph", %{"search" => %{"txid" => txid, "depth" => depth}}, socket) do
+    cleaned_txid = String.trim(txid)
     depth = String.to_integer(depth)
     
-    socket = 
-      socket
-      |> assign(:selected_txid, txid)
-      |> assign(:search_depth, depth)
-      |> assign(:loading, true)
-      |> assign(:error, nil)
+    # Validate input before proceeding
+    case validate_transaction_id(cleaned_txid) do
+      :ok ->
+        socket = 
+          socket
+          |> assign(:selected_txid, cleaned_txid)
+          |> assign(:search_depth, depth)
+          |> assign(:loading, true)
+          |> assign(:error, nil)
 
-    send(self(), {:load_graph, txid})
-
-    {:noreply, socket}
+        send(self(), {:load_graph, cleaned_txid})
+        {:noreply, socket}
+      
+      {:error, reason} ->
+        error_message = format_error_message(reason, cleaned_txid)
+        
+        socket = 
+          socket
+          |> assign(:selected_txid, cleaned_txid)
+          |> assign(:search_depth, depth)
+          |> assign(:loading, false)
+          |> assign(:error, error_message)
+        
+        {:noreply, socket}
+    end
   end
 
   @impl true
@@ -93,10 +109,14 @@ defmodule ReoxtWeb.GraphLive do
         {:noreply, socket}
 
       {:error, reason} ->
+        error_message = format_error_message(reason, txid)
+        
         socket = 
           socket
           |> assign(:loading, false)
-          |> assign(:error, "Failed to load graph: #{inspect(reason)}")
+          |> assign(:error, error_message)
+          |> assign(:graph_data, nil)
+          |> assign(:graph_stats, %{})
 
         {:noreply, socket}
     end
@@ -171,13 +191,38 @@ defmodule ReoxtWeb.GraphLive do
 
       <!-- Error Display -->
       <%= if @error do %>
-        <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+            </div>
             <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">Error</h3>
+              <h3 class="text-sm font-medium text-red-800">Transaction Not Found</h3>
               <div class="mt-2 text-sm text-red-700">
                 <%= @error %>
               </div>
+              <%= if String.contains?(@error, "not found") do %>
+                <div class="mt-3 text-sm text-red-600">
+                  <p class="font-medium">Suggestions:</p>
+                  <ul class="mt-1 list-disc list-inside space-y-1">
+                    <li>Verify the transaction ID is correct (64 hexadecimal characters)</li>
+                    <li>Check if the transaction has been confirmed on the blockchain</li>
+                    <li>Try a different transaction ID</li>
+                  </ul>
+                </div>
+              <% end %>
+              <%= if String.contains?(@error, "connection") or String.contains?(@error, "RPC") do %>
+                <div class="mt-3 text-sm text-red-600">
+                  <p class="font-medium">Connection Issue:</p>
+                  <ul class="mt-1 list-disc list-inside space-y-1">
+                    <li>Check your Bitcoin node is running</li>
+                    <li>Verify RPC credentials are configured correctly</li>
+                    <li>Ensure network connectivity to the Bitcoin node</li>
+                  </ul>
+                </div>
+              <% end %>
             </div>
           </div>
         </div>
@@ -320,12 +365,106 @@ defmodule ReoxtWeb.GraphLive do
 
   # Private functions
   defp build_transaction_graph(txid, depth) do
-    try do
-      graph_data = Analyzer.build_transaction_graph(txid, depth)
-      {:ok, graph_data}
-    rescue
-      error ->
-        {:error, error}
+    # Validate transaction ID format first
+    case validate_transaction_id(txid) do
+      :ok ->
+        try do
+          graph_data = Analyzer.build_transaction_graph(txid, depth)
+          {:ok, graph_data}
+        rescue
+          error ->
+            {:error, error}
+        catch
+          :throw, {:error, reason} ->
+            {:error, reason}
+          :error, reason ->
+            {:error, reason}
+        end
+      
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp validate_transaction_id(txid) when is_binary(txid) do
+    cleaned_txid = String.trim(txid)
+    
+    cond do
+      cleaned_txid == "" ->
+        {:error, :empty_txid}
+      
+      byte_size(cleaned_txid) != 64 ->
+        {:error, :invalid_length}
+      
+      not Regex.match?(~r/^[a-fA-F0-9]{64}$/, cleaned_txid) ->
+        {:error, :invalid_format}
+      
+      true ->
+        :ok
+    end
+  end
+
+  defp validate_transaction_id(_), do: {:error, :invalid_type}
+
+  defp format_error_message(reason, txid) do
+    case reason do
+      :empty_txid ->
+        "Please enter a transaction ID."
+      
+      :invalid_length ->
+        "Transaction ID must be exactly 64 characters long. You entered #{byte_size(String.trim(txid))} characters."
+      
+      :invalid_format ->
+        "Transaction ID must contain only hexadecimal characters (0-9, a-f, A-F)."
+      
+      :invalid_type ->
+        "Invalid transaction ID format."
+      
+      %{message: message} when is_binary(message) ->
+        cond do
+          String.contains?(message, "not found") or String.contains?(message, "No such") ->
+            "Transaction '#{String.slice(txid, 0, 8)}...' not found. Please verify the transaction ID and try again."
+          
+          String.contains?(message, "connection") ->
+            "Unable to connect to Bitcoin node. Please check your RPC configuration."
+          
+          String.contains?(message, "unauthorized") ->
+            "Authentication failed. Please check your RPC credentials."
+          
+          true ->
+            "Error: #{message}"
+        end
+      
+      error when is_atom(error) ->
+        case error do
+          :not_found ->
+            "Transaction '#{String.slice(txid, 0, 8)}...' not found in the blockchain."
+          
+          :connection_error ->
+            "Unable to connect to Bitcoin node. Please check your network connection."
+          
+          :timeout ->
+            "Request timed out. The Bitcoin node may be busy."
+          
+          _ ->
+            "An unexpected error occurred: #{error}"
+        end
+      
+      %{__exception__: true} = exception ->
+        case exception do
+          %RuntimeError{message: message} ->
+            if String.contains?(message, "not found") do
+              "Transaction '#{String.slice(txid, 0, 8)}...' not found in the blockchain."
+            else
+              "Error: #{message}"
+            end
+          
+          _ ->
+            "An error occurred while fetching transaction data."
+        end
+      
+      _ ->
+        "Failed to load transaction graph. Please try again with a valid transaction ID."
     end
   end
 
