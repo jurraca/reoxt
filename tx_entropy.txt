@@ -1,0 +1,42 @@
+## Entropy of a Transaction
+
+The idea of this metric comes from a discussion with Greg Maxwell (1).
+He was suggesting a notion of "Coinjoin Entropy" measuring how many possible mappings of inputs to outputs are possible given the values of the txos.
+
+Considering that the number of combinations may be very high (b/o the combinatorial explosion created by coinjoin transactions) it's wise to define the notion of entropy:
+
+E = log2(N)
+
+with:
+E = entropy of the transaction
+N = number of combinations (mappings of inputs to outputs)
+
+Basically, it's the Shannon Entropy with the hypothesis that all events have the same probability (i.e. no additional information giving a "preference" to specific combinations).
+
+Examples
+
+Example 1: Basic Payment Transaction
+* N = 1
+* E = 0
+* The unique interpretation is: [(I1,I2,I3,I4,I5,I6)=>(O1,O2)]
+
+
+Example 2: Ambiguous Transaction
+* N = 2
+* E = 1
+* Interpretations are:
+  - [(I1)=>(O2), (I2)=>(O1)]
+  - [(I1,I2)=>(O1,O2)]
+
+
+Example 3: Basic Coinjoin Transaction (DarkWallet)
+* N = 3
+* E = 1.585
+* Interpretations are:
+  - [(I1)=>(O1,O2), (I2)=>(O3,O4)]
+  - [(I1)=>(O3,O2), (I2)=>(O1,O4)]
+  - [(I1,I2)=>(O1,O2,O3,O4)]
+* Note:
+  O2 and O4 are the change outputs of the coinjoin transaction.
+  For all combinations we have I1=>O2 and I2=>O4.
+  We say that I1 is deterministically linked to O2 and I2 is deterministically linked to O4.
