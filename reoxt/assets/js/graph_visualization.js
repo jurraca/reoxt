@@ -75,14 +75,11 @@ const GraphVisualization = {
 
     console.log("Rendering graph:", graphData.nodes.length, "nodes,", graphData.edges.length, "edges");
 
-    // Store the original graph data for hover details
-    this.graphData = graphData;
-
     // Prepare data like the example - simple structure
     const nodes = graphData.nodes.map(d => ({ 
       id: d.txid,
       group: 1,  // Simple grouping for color
-      originalData: d  // Keep reference to original data
+      originalData: d  // Keep reference to original data for hover
     }));
 
     const links = graphData.edges.map(d => ({ 
@@ -130,10 +127,16 @@ const GraphVisualization = {
     this.nodeElements.append("title")
       .text(d => `TX: ${d.id.substring(0, 16)}...`);
 
-    // Add hover events for transaction details
+    // Add hover events for transaction details - simplified
     this.nodeElements
-      .on("mouseover", (event, d) => this.showTransactionDetails(d))
-      .on("mouseout", () => this.hideTransactionDetails());
+      .on("mouseover", (event, d) => {
+        if (d.originalData) {
+          this.showTransactionDetails(d.originalData);
+        }
+      })
+      .on("mouseout", () => {
+        this.hideTransactionDetails();
+      });
 
     // Add drag behavior exactly like the example
     this.nodeElements.call(d3.drag()
@@ -191,15 +194,13 @@ const GraphVisualization = {
     }
   },
 
-  showTransactionDetails(nodeData) {
+  showTransactionDetails(tx) {
     const detailsPanel = document.getElementById('transaction-details');
     const contentDiv = document.getElementById('transaction-content');
     
-    if (!detailsPanel || !contentDiv || !nodeData.originalData) {
+    if (!detailsPanel || !contentDiv || !tx) {
       return;
     }
-
-    const tx = nodeData.originalData;
     
     // Format the transaction data
     const confirmations = tx.confirmations || 0;
