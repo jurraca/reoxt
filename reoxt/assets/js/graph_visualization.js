@@ -120,11 +120,18 @@ const GraphVisualization = {
       .data(nodes)
       .join("circle")
       .attr("r", 8)
-      .attr("fill", "#bf00ff");
+      .attr("fill", "#bf00ff")
+      .style("cursor", "pointer")
+      .style("transition", "all 0.3s ease");
 
     // Add tooltips like the example
     this.nodeElements.append("title")
       .text(d => `TX: ${d.id.substring(0, 16)}...`);
+
+    // Add hover event listeners
+    this.nodeElements
+      .on("mouseenter", (event, d) => this.onNodeHover(event, d))
+      .on("mouseleave", (event, d) => this.onNodeLeave(event, d));
 
     // Add drag behavior exactly like the example
     this.nodeElements.call(d3.drag()
@@ -171,6 +178,34 @@ const GraphVisualization = {
     if (!event.active) this.simulation.alphaTarget(0);
     event.subject.fx = null;
     event.subject.fy = null;
+  },
+
+  onNodeHover(event, nodeData) {
+    // Highlight the hovered node
+    d3.select(event.target)
+      .attr("r", 12)
+      .attr("fill", "#00d4ff")
+      .style("filter", "drop-shadow(0 0 10px #00d4ff)");
+    
+    // Send hover event to LiveView with transaction data
+    this.pushEvent("node_hover", {
+      txid: nodeData.id,
+      x: event.pageX,
+      y: event.pageY
+    });
+  },
+
+  onNodeLeave(event, nodeData) {
+    // Reset the node appearance
+    d3.select(event.target)
+      .attr("r", 8)
+      .attr("fill", "#bf00ff")
+      .style("filter", "none");
+    
+    // Send leave event to LiveView
+    this.pushEvent("node_leave", {
+      txid: nodeData.id
+    });
   },
 
   clearGraph() {
