@@ -75,10 +75,14 @@ const GraphVisualization = {
 
     console.log("Rendering graph:", graphData.nodes.length, "nodes,", graphData.edges.length, "edges");
 
+    // Store the original graph data for hover details
+    this.graphData = graphData;
+
     // Prepare data like the example - simple structure
     const nodes = graphData.nodes.map(d => ({ 
       id: d.txid,
-      group: 1  // Simple grouping for color
+      group: 1,  // Simple grouping for color
+      originalData: d  // Keep reference to original data
     }));
 
     const links = graphData.edges.map(d => ({ 
@@ -125,6 +129,11 @@ const GraphVisualization = {
     // Add tooltips like the example
     this.nodeElements.append("title")
       .text(d => `TX: ${d.id.substring(0, 16)}...`);
+
+    // Add hover events for transaction details
+    this.nodeElements
+      .on("mouseover", (event, d) => this.showTransactionDetails(d))
+      .on("mouseout", () => this.hideTransactionDetails());
 
     // Add drag behavior exactly like the example
     this.nodeElements.call(d3.drag()
@@ -181,6 +190,104 @@ const GraphVisualization = {
       this.svg.selectAll("*").remove();
     }
   },
+
+  showTransactionDetails(nodeData) {
+    const detailsPanel = document.getElementById('transaction-details');
+    const contentDiv = document.getElementById('transaction-content');
+    
+    if (!detailsPanel || !contentDiv || !nodeData.originalData) {
+      return;
+    }
+
+    const tx = nodeData.originalData;
+    
+    // Format the transaction data
+    const confirmations = tx.confirmations || 0;
+    const blockHeight = tx.block_height || 'Unknown';
+    const timestamp = tx.timestamp ? new Date(tx.timestamp * 1000).toLocaleString() : 'Unknown';
+    
+    // Calculate total input and output values
+    const totalInputs = tx.inputs ? tx.inputs.reduce((sum, input) => sum + (input.value || 0), 0) : 0;
+    const totalOutputs = tx.outputs ? tx.outputs.reduce((sum, output) => sum + (output.value || 0), 0) : 0;
+    
+    // Format BTC values
+    const formatBTC = (satoshis) => (satoshis / 100000000).toFixed(8);
+
+    contentDiv.innerHTML = `
+      <div class="space-y-3">
+        <div>
+          <span class="text-gray-400">Transaction ID:</span>
+          <div class="font-mono text-xs break-all" style="color: #bf40ff;">${tx.txid}</div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <span class="text-gray-400">Confirmations:</span>
+            <div class="font-semibold" style="color: ${confirmations === 0 ? '#00d4ff' : '#bf40ff'};">${confirmations}</div>
+          </div>
+          <div>
+            <span class="text-gray-400">Block Height:</span>
+            <div class="font-semibold" style="color: #bf40ff;">${blockHeight}</div>
+          </div>
+        </div>
+        
+        <div>
+          <span class="text-gray-400">Timestamp:</span>
+          <div class="font-semibold text-gray-300">${timestamp}</div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <span class="text-gray-400">Total Inputs:</span>
+            <div class="font-semibold" style="color: #00d4ff;">${formatBTC(totalInputs)} BTC</div>
+          </div>
+          <div>
+            <span class="text-gray-400">Total Outputs:</span>
+            <div class="font-semibold" style="color: #00d4ff;">${formatBTC(totalOutputs)} BTC</div>
+          </div>
+        </div>
+        
+        ${tx.inputs && tx.inputs.length > 0 ? `
+          <div>
+            <span class="text-gray-400">Inputs (${tx.inputs.length}):</span>
+            <div class="text-xs space-y-1 max-h-24 overflow-y-auto">
+              ${tx.inputs.slice(0, 3).map(input => `
+                <div class="font-mono break-all text-gray-300">
+                  ${input.previous_output_hash ? input.previous_output_hash.substring(0, 16) + '...' : 'Coinbase'}
+                  ${input.value ? `<span style="color: #00d4ff;"> (${formatBTC(input.value)} BTC)</span>` : ''}
+                </div>
+              `).join('')}
+              ${tx.inputs.length > 3 ? `<div class="text-gray-500">... and ${tx.inputs.length - 3} more</div>` : ''}
+            </div>
+          </div>
+        ` : ''}
+        
+        ${tx.outputs && tx.outputs.length > 0 ? `
+          <div>
+            <span class="text-gray-400">Outputs (${tx.outputs.length}):</span>
+            <div class="text-xs space-y-1 max-h-24 overflow-y-auto">
+              ${tx.outputs.slice(0, 3).map((output, index) => `
+                <div class="text-gray-300">
+                  Output ${index}: <span style="color: #00d4ff;">${formatBTC(output.value || 0)} BTC</span>
+                  ${output.script_pubkey ? `<div class="font-mono text-xs text-gray-500">${output.script_pubkey.substring(0, 32)}...</div>` : ''}
+                </div>
+              `).join('')}
+              ${tx.outputs.length > 3 ? `<div class="text-gray-500">... and ${tx.outputs.length - 3} more</div>` : ''}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+    
+    detailsPanel.classList.remove('hidden');
+  }
+
+  hideTransactionDetails() {
+    const detailsPanel = document.getElementById('transaction-details');
+    if (detailsPanel) {
+      detailsPanel.classList.add('hidden');
+    }
+  }
 
   destroyed() {
     if (this.simulation) {
