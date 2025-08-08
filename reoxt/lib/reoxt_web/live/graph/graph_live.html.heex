@@ -141,7 +141,7 @@
         <div class="space-y-6">
           <!-- Transaction Details -->
           <%= if @show_transaction_details && @hovered_transaction do %>
-            <div class="card shadow-lg transaction-details-enter" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a); border: 2px solid rgba(0, 212, 255, 0.3);">
+            <div class="card shadow-lg transaction-details-enter p-4" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a); border: 2px solid rgba(0, 212, 255, 0.3);">
               <h3 class="text-lg font-semibold mb-3" style="color: #00d4ff;">Transaction Details</h3>
               <div class="space-y-3 text-sm">
                 <div>
@@ -203,7 +203,7 @@
 
           <!-- Graph Statistics -->
           <%= if @graph_data do %>
-            <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
+            <div class="card shadow-lg p-4" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
               <h3 class="text-lg font-semibold mb-3" style="color: #00d4ff;">Graph Statistics</h3>
               <div class="space-y-2 text-sm">
                 <div class="flex justify-between text-gray-300">
@@ -228,7 +228,7 @@
 
           <!-- Graph Algorithms -->
           <%= if @graph_data do %>
-            <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
+            <div class="card shadow-lg p-4" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
               <h3 class="text-lg font-semibold mb-3" style="color: #bf00ff;">Graph Analysis</h3>
 
               <div class="mb-4">
@@ -268,7 +268,7 @@
           <% end %>
 
           <!-- Legend -->
-          <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
+          <div class="card shadow-lg p-4" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
             <h3 class="text-lg font-semibold mb-3" style="color: #1e90ff;">Legend</h3>
             <div class="space-y-2 text-sm">
               <div class="flex items-center">
