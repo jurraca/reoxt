@@ -105,7 +105,7 @@ const GraphVisualization = {
 
     // Add links exactly like the example
     this.linkElements = this.svg.append("g")
-      .attr("stroke", "#39ff14")
+      .attr("stroke", "#808080")
       .attr("stroke-opacity", 0.6)
       .selectAll()
       .data(links)
