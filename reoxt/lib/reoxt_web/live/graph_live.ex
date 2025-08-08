@@ -92,6 +92,20 @@ defmodule ReoxtWeb.GraphLive do
   end
 
   @impl true
+  def handle_event("node_hover", %{"txid" => txid, "x" => x, "y" => y}, socket) do
+    # Handle node hover - could be used to show tooltip or highlight related transactions
+    # For now, we'll just log it or potentially update some state
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("node_leave", %{"txid" => _txid}, socket) do
+    # Handle node leave - could be used to hide tooltip or remove highlights
+    # For now, we'll just acknowledge the event
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_info({:load_graph, txid}, socket) do
     case build_transaction_graph(txid, socket.assigns.search_depth) do
       {:ok, graph_data} ->
