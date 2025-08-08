@@ -122,7 +122,7 @@ const GraphVisualization = {
       .attr("r", 8)
       .attr("fill", "#bf00ff")
       .style("cursor", "pointer")
-      .style("transition", "all 0.3s ease");
+      .style("transition", "all 0.2s ease");
 
     // Add tooltips like the example
     this.nodeElements.append("title")
