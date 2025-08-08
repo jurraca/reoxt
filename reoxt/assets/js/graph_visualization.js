@@ -78,6 +78,7 @@ const GraphVisualization = {
     // Prepare data like the example - simple structure
     const nodes = graphData.nodes.map(d => ({ 
       id: d.txid,
+      txid: d.txid, // Keep original txid for reference
       group: 1  // Simple grouping for color
     }));
 
@@ -189,7 +190,7 @@ const GraphVisualization = {
     
     // Send hover event to LiveView with transaction data
     this.pushEvent("node_hover", {
-      txid: nodeData.id,
+      txid: nodeData.txid || nodeData.id,
       x: event.pageX,
       y: event.pageY
     });
@@ -204,7 +205,7 @@ const GraphVisualization = {
     
     // Send leave event to LiveView
     this.pushEvent("node_leave", {
-      txid: nodeData.id
+      txid: nodeData.txid || nodeData.id
     });
   },
 

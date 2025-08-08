@@ -146,7 +146,7 @@
               <div class="space-y-3 text-sm">
                 <div>
                   <span class="text-gray-400 block text-xs mb-1">Transaction ID</span>
-                  <span class="font-mono text-xs text-gray-300 break-all"><%= String.slice(@hovered_transaction.id, 0, 16) %>...</span>
+                  <span class="font-mono text-xs text-gray-300 break-all"><%= String.slice(@hovered_transaction.txid || @hovered_transaction.id, 0, 16) %>...</span>
                 </div>
                 
                 <%= if Map.has_key?(@hovered_transaction, :block_height) do %>

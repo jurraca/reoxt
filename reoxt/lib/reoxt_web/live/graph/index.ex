@@ -99,7 +99,10 @@ defmodule ReoxtWeb.GraphLive do
     transaction_details = case socket.assigns.graph_data do
       nil -> nil
       graph_data ->
-        Enum.find(graph_data.nodes, &(&1.id == txid))
+        # Look for the transaction by txid field
+        Enum.find(graph_data.nodes, fn node ->
+          Map.get(node, :txid) == txid || Map.get(node, :id) == txid
+        end)
     end
     
     {:noreply, 
