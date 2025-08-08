@@ -234,6 +234,7 @@ defmodule ReoxtWeb.GraphLive do
               <div
                 id="graph-container"
                 phx-hook="GraphVisualization"
+                phx-update="ignore"
                 class="w-full h-[600px] rounded-lg"
                 style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a); border: 2px solid rgba(191, 64, 255, 0.3);"
               >

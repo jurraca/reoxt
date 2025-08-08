@@ -48,28 +48,24 @@ const GraphVisualization = {
     // Clear any existing content
     container.innerHTML = '';
 
-    // Create SVG element directly and then select it with D3
-    const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svgElement.setAttribute("width", width);
-    svgElement.setAttribute("height", height);
-    svgElement.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svgElement.style.background = "#0a0a0a";
-    svgElement.style.borderRadius = "8px";
-    svgElement.style.maxWidth = "100%";
-    svgElement.style.height = "auto";
-    svgElement.style.border = "1px solid #39ff14"; // Add border to see the SVG
-    
-    container.appendChild(svgElement);
-
-    // Now select with D3
-    this.svg = d3.select(svgElement);
+    // Create SVG with D3
+    this.svg = d3.select(container)
+      .append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .style("background", "#0a0a0a")
+      .style("border-radius", "8px")
+      .style("max-width", "100%")
+      .style("height", "auto")
+      .style("border", "1px solid #39ff14");
 
     // Store dimensions for later use
     this.width = width;
     this.height = height;
 
     console.log('Graph initialized with dimensions:', { width, height });
-    console.log('SVG element created:', svgElement);
+    console.log('SVG element created by D3');
   },
 
   renderGraph(graphData) {
