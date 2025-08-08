@@ -265,14 +265,6 @@ defmodule ReoxtWeb.GraphLive do
 
         <!-- Sidebar -->
         <div class="space-y-6">
-          <!-- Transaction Details -->
-          <div id="transaction-details" class="card shadow-lg hidden" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
-            <h3 class="text-lg font-semibold mb-3" style="color: #00d4ff;">Transaction Details</h3>
-            <div id="transaction-content" class="space-y-2 text-sm">
-              <!-- Content will be populated by JavaScript -->
-            </div>
-          </div>
-
           <!-- Graph Statistics -->
           <%= if @graph_data do %>
             <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
