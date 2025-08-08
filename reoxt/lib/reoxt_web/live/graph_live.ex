@@ -17,7 +17,9 @@ defmodule ReoxtWeb.GraphLive do
      |> assign(:search_depth, 3)
      |> assign(:graph_stats, %{})
      |> assign(:algorithm_result, nil)
-     |> assign(:selected_algorithm, "centrality")}
+     |> assign(:selected_algorithm, "centrality")
+     |> assign(:hovered_transaction, nil)
+     |> assign(:show_transaction_details, false)}
   end
 
   @impl true
@@ -93,16 +95,26 @@ defmodule ReoxtWeb.GraphLive do
 
   @impl true
   def handle_event("node_hover", %{"txid" => txid, "x" => x, "y" => y}, socket) do
-    # Handle node hover - could be used to show tooltip or highlight related transactions
-    # For now, we'll just log it or potentially update some state
-    {:noreply, socket}
+    # Find transaction details from the current graph data
+    transaction_details = case socket.assigns.graph_data do
+      nil -> nil
+      graph_data ->
+        Enum.find(graph_data.nodes, &(&1.id == txid))
+    end
+    
+    {:noreply, 
+     socket
+     |> assign(:hovered_transaction, transaction_details)
+     |> assign(:show_transaction_details, true)}
   end
 
   @impl true
   def handle_event("node_leave", %{"txid" => _txid}, socket) do
-    # Handle node leave - could be used to hide tooltip or remove highlights
-    # For now, we'll just acknowledge the event
-    {:noreply, socket}
+    # Hide transaction details when mouse leaves node
+    {:noreply, 
+     socket
+     |> assign(:hovered_transaction, nil)
+     |> assign(:show_transaction_details, false)}
   end
 
   @impl true
@@ -279,6 +291,68 @@ defmodule ReoxtWeb.GraphLive do
 
         <!-- Sidebar -->
         <div class="space-y-6">
+          <!-- Transaction Details -->
+          <%= if @show_transaction_details && @hovered_transaction do %>
+            <div class="card shadow-lg transaction-details-enter" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a); border: 2px solid rgba(0, 212, 255, 0.3);">
+              <h3 class="text-lg font-semibold mb-3" style="color: #00d4ff;">Transaction Details</h3>
+              <div class="space-y-3 text-sm">
+                <div>
+                  <span class="text-gray-400 block text-xs mb-1">Transaction ID</span>
+                  <span class="font-mono text-xs text-gray-300 break-all"><%= String.slice(@hovered_transaction.id, 0, 16) %>...</span>
+                </div>
+                
+                <%= if Map.has_key?(@hovered_transaction, :block_height) do %>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Block Height:</span>
+                    <span class="font-medium text-white"><%= @hovered_transaction.block_height %></span>
+                  </div>
+                <% end %>
+                
+                <%= if Map.has_key?(@hovered_transaction, :timestamp) do %>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Timestamp:</span>
+                    <span class="font-medium text-white"><%= format_timestamp(@hovered_transaction.timestamp) %></span>
+                  </div>
+                <% end %>
+                
+                <%= if Map.has_key?(@hovered_transaction, :inputs) && @hovered_transaction.inputs do %>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Inputs:</span>
+                    <span class="font-medium" style="color: #bf40ff;"><%= length(@hovered_transaction.inputs) %></span>
+                  </div>
+                <% end %>
+                
+                <%= if Map.has_key?(@hovered_transaction, :outputs) && @hovered_transaction.outputs do %>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Outputs:</span>
+                    <span class="font-medium" style="color: #bf40ff;"><%= length(@hovered_transaction.outputs) %></span>
+                  </div>
+                <% end %>
+                
+                <%= if Map.has_key?(@hovered_transaction, :fee) do %>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Fee:</span>
+                    <span class="font-medium text-white"><%= format_btc_amount(@hovered_transaction.fee) %> BTC</span>
+                  </div>
+                <% end %>
+                
+                <%= if Map.has_key?(@hovered_transaction, :size) do %>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Size:</span>
+                    <span class="font-medium text-white"><%= @hovered_transaction.size %> bytes</span>
+                  </div>
+                <% end %>
+                
+                <%= if Map.has_key?(@hovered_transaction, :outputs) && @hovered_transaction.outputs do %>
+                  <div>
+                    <span class="text-gray-400 block text-xs mb-1">Total Value:</span>
+                    <span class="font-medium text-white"><%= calculate_total_output_value(@hovered_transaction.outputs) %> BTC</span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
           <!-- Graph Statistics -->
           <%= if @graph_data do %>
             <div class="card shadow-lg" style="background: linear-gradient(145deg, #0a0a0a, #1a1a1a);">
@@ -553,4 +627,32 @@ defmodule ReoxtWeb.GraphLive do
         confirmations # Use the existing confirmations if available
     end
   end
+
+  # Helper function to format timestamps
+  defp format_timestamp(timestamp) when is_binary(timestamp), do: timestamp
+  defp format_timestamp(%NaiveDateTime{} = timestamp) do
+    NaiveDateTime.to_string(timestamp)
+  end
+  defp format_timestamp(timestamp) when is_integer(timestamp) do
+    DateTime.from_unix!(timestamp) |> DateTime.to_string()
+  end
+  defp format_timestamp(_), do: "N/A"
+
+  # Helper function to format BTC amounts
+  defp format_btc_amount(satoshis) when is_integer(satoshis) do
+    :erlang.float_to_binary(satoshis / 100_000_000, decimals: 8)
+  end
+  defp format_btc_amount(_), do: "0.00000000"
+
+  # Helper function to calculate total output value
+  defp calculate_total_output_value(outputs) when is_list(outputs) do
+    total_satoshis = Enum.reduce(outputs, 0, fn output, acc ->
+      case Map.get(output, :value) do
+        value when is_integer(value) -> acc + value
+        _ -> acc
+      end
+    end)
+    format_btc_amount(total_satoshis)
+  end
+  defp calculate_total_output_value(_), do: "0.00000000"
 end

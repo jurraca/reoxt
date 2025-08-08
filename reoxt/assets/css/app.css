@@ -1,12 +1,40 @@
-
-
 /* See the Tailwind configuration guide for advanced usage
    https://tailwindcss.com/docs/configuration */
 
-@import "tailwindcss" source(none);
-@source "../css";
-@source "../js";
-@source "../../lib/reoxt_web";
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* Custom transitions for transaction details sidebar */
+.transaction-details-enter {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+.transaction-details-leave {
+  animation: slideOutToRight 0.3s ease-in;
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
 
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */
@@ -383,10 +411,9 @@ h1, h2, h3, h4, h5, h6 {
     margin: 0.5rem;
     border-radius: 8px;
   }
-  
+
   .btn {
     font-size: 14px;
     padding: 0.5rem 1rem;
   }
 }
-
