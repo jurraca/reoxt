@@ -57,8 +57,7 @@ const GraphVisualization = {
       .style("background", "#0a0a0a")
       .style("border-radius", "8px")
       .style("max-width", "100%")
-      .style("height", "auto")
-      .style("border", "1px solid #39ff14");
+      .style("height", "auto");
 
     // Store dimensions for later use
     this.width = width;
