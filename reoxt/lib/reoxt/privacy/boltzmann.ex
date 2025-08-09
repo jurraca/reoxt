@@ -37,40 +37,37 @@ defmodule Reoxt.Privacy.Boltzmann do
 
   @doc """
   Analyze a transaction to find all possible input/output mappings.
-  
+
   This implements the core Boltzmann analysis algorithm.
   """
-  def analyze_transaction(transaction) do
-    inputs = transaction.inputs || []
-    outputs = transaction.outputs || []
+  def analyze_transaction(%{inputs: []}) do
+    {:ok, %{
+      combinations: 1,
+      entropy: 0.0,
+      deterministic_links: [],
+      interpretation: "coinbase",
+      analysis_type: "coinbase_transaction"
+    }}
+  end
 
-    # Get input and output values
+  def analyze_transaction(%{outputs: []}), do: {:error, "outputs to the transaction are empty"}
+
+  def analyze_transaction(%{inputs: inputs, outputs: outputs} = transaction) do
     input_values = Enum.map(inputs, & &1.value)
-    output_values = Enum.map(outputs, & &1.n |> then(fn n -> 
-      Enum.find(outputs, &(&1.n == n)).value 
+    input_total = Enum.sum(input_values)
+
+    output_values = Enum.map(outputs, & &1.n |> then(fn n ->
+      Enum.find(outputs, &(&1.n == n)).value
     end))
+    output_total = Enum.sum(output_values)
 
-    total_input = Enum.sum(input_values)
-    total_output = Enum.sum(output_values)
-
-    # Basic validation
     cond do
-      length(inputs) == 0 ->
-        # Coinbase transaction
-        {:ok, %{
-          combinations: 1,
-          entropy: 0.0,
-          deterministic_links: [],
-          interpretation: "coinbase",
-          analysis_type: "coinbase_transaction"
-        }}
-
-      total_input != total_output ->
+      input_total != output_total ->
         # Invalid transaction (shouldn't happen with proper data)
+        # account for fees diff
         {:error, "Input/output value mismatch"}
 
       true ->
-        # Perform combinatorial analysis
         perform_combinatorial_analysis(input_values, output_values, inputs, outputs)
     end
   end
