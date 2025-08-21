@@ -11,6 +11,12 @@ config :reoxt,
   ecto_repos: [Reoxt.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :gold, :localnode,
+  hostname: System.get_env("RPC_HOST"),
+  port: System.get_env("RPC_PORT") || 8332,
+  user: System.get_env("RPC_USER"),
+  password: System.get_env("RPC_PW")
+
 # Configures the endpoint
 config :reoxt, ReoxtWeb.Endpoint,
   url: [host: "localhost"],
@@ -21,15 +27,6 @@ config :reoxt, ReoxtWeb.Endpoint,
   ],
   pubsub_server: Reoxt.PubSub,
   live_view: [signing_salt: "uhWodoqY"]
-
-# Configures the mailer
-#
-# By default it uses the "Local" adapter which stores the emails
-# locally. You can see the emails in your browser, at "/dev/mailbox".
-#
-# For production it's recommended to configure a different adapter
-# at the `config/runtime.exs`.
-config :reoxt, Reoxt.Mailer, adapter: Swoosh.Adapters.Local
 
 # Configure esbuild (the version is required)
 config :esbuild,
