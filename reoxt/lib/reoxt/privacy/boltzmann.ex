@@ -1,12 +1,11 @@
-
 defmodule Reoxt.Privacy.Boltzmann do
   @moduledoc """
   Implementation of the Boltzmann method for calculating transaction entropy.
-  
+
   Based on the research by Greg Maxwell, this calculates the Shannon entropy
   of a transaction by determining how many possible mappings of inputs to
   outputs are mathematically possible given only the transaction values.
-  
+
   Formula: E = log2(N)
   Where:
   - E = entropy of the transaction
@@ -17,7 +16,7 @@ defmodule Reoxt.Privacy.Boltzmann do
 
   @doc """
   Calculate the entropy of a transaction.
-  
+
   Returns a map with:
   - entropy: The Shannon entropy (log2 of combinations)
   - combinations: Number of possible input/output mappings
@@ -25,11 +24,12 @@ defmodule Reoxt.Privacy.Boltzmann do
   """
   def calculate_entropy(transaction) do
     with {:ok, analysis} <- analyze_transaction(transaction) do
-      entropy = if analysis.combinations > 0 do
-        :math.log2(analysis.combinations)
-      else
-        0.0
-      end
+      entropy =
+        if analysis.combinations > 0 do
+          :math.log2(analysis.combinations)
+        else
+          0.0
+        end
 
       Map.put(analysis, :entropy, entropy)
     end
@@ -41,13 +41,14 @@ defmodule Reoxt.Privacy.Boltzmann do
   This implements the core Boltzmann analysis algorithm.
   """
   def analyze_transaction(%{inputs: []}) do
-    {:ok, %{
-      combinations: 1,
-      entropy: 0.0,
-      deterministic_links: [],
-      interpretation: "coinbase",
-      analysis_type: "coinbase_transaction"
-    }}
+    {:ok,
+     %{
+       combinations: 1,
+       entropy: 0.0,
+       deterministic_links: [],
+       interpretation: "coinbase",
+       analysis_type: "coinbase_transaction"
+     }}
   end
 
   def analyze_transaction(%{outputs: []}), do: {:error, "outputs to the transaction are empty"}
@@ -56,9 +57,15 @@ defmodule Reoxt.Privacy.Boltzmann do
     input_values = Enum.map(inputs, & &1.value)
     input_total = Enum.sum(input_values)
 
-    output_values = Enum.map(outputs, & &1.n |> then(fn n ->
-      Enum.find(outputs, &(&1.n == n)).value
-    end))
+    output_values =
+      Enum.map(
+        outputs,
+        &(&1.n
+          |> then(fn n ->
+            Enum.find(outputs, fn x -> x == n end).value
+          end))
+      )
+
     output_total = Enum.sum(output_values)
 
     cond do
@@ -72,17 +79,16 @@ defmodule Reoxt.Privacy.Boltzmann do
     end
   end
 
-  # Main combinatorial analysis
   defp perform_combinatorial_analysis(input_values, output_values, inputs, outputs) do
     # Generate all possible partitions of inputs
     input_partitions = generate_partitions(input_values)
-    
+
     # For each partition, check if it can map to output partitions
-    valid_mappings = 
+    valid_mappings =
       input_partitions
       |> Enum.flat_map(fn input_partition ->
         output_partitions = generate_partitions(output_values)
-        
+
         output_partitions
         |> Enum.filter(fn output_partition ->
           can_map_partitions?(input_partition, output_partition)
@@ -99,34 +105,36 @@ defmodule Reoxt.Privacy.Boltzmann do
     # Count unique valid mappings
     combinations = length(valid_mappings)
 
-    {:ok, %{
-      combinations: combinations,
-      deterministic_links: deterministic_links,
-      valid_mappings: valid_mappings,
-      analysis_type: classify_transaction_type(length(inputs), length(outputs), combinations)
-    }}
+    {:ok,
+     %{
+       combinations: combinations,
+       deterministic_links: deterministic_links,
+       valid_mappings: valid_mappings,
+       analysis_type: classify_transaction_type(length(inputs), length(outputs), combinations)
+     }}
   end
 
   # Generate all possible partitions of a list of values
   defp generate_partitions([]), do: [[]]
+
   defp generate_partitions([value | rest]) do
     rest_partitions = generate_partitions(rest)
-    
+
     # For each existing partition, we can either:
     # 1. Add the value to an existing subset
     # 2. Create a new subset with just this value
     Enum.flat_map(rest_partitions, fn partition ->
       # Add to existing subsets
-      existing_additions = 
+      existing_additions =
         partition
         |> Enum.with_index()
         |> Enum.map(fn {subset, index} ->
           List.replace_at(partition, index, [value | subset])
         end)
-      
+
       # Create new subset
       new_subset_addition = [[value] | partition]
-      
+
       [new_subset_addition | existing_additions]
     end)
   end
@@ -135,7 +143,7 @@ defmodule Reoxt.Privacy.Boltzmann do
   defp can_map_partitions?(input_partition, output_partition) do
     input_sums = Enum.map(input_partition, &Enum.sum/1) |> Enum.sort()
     output_sums = Enum.map(output_partition, &Enum.sum/1) |> Enum.sort()
-    
+
     input_sums == output_sums
   end
 
@@ -146,17 +154,18 @@ defmodule Reoxt.Privacy.Boltzmann do
       case valid_mappings do
         [{input_partition, output_partition}] ->
           create_deterministic_links(input_partition, output_partition, inputs, outputs)
+
         [] ->
           []
       end
     else
       # Find links that appear in ALL mappings
-      all_links = 
+      all_links =
         valid_mappings
         |> Enum.map(fn {input_partition, output_partition} ->
           create_deterministic_links(input_partition, output_partition, inputs, outputs)
         end)
-      
+
       # Find intersection of all link sets
       case all_links do
         [first | rest] ->
@@ -167,6 +176,7 @@ defmodule Reoxt.Privacy.Boltzmann do
               end)
             end)
           end)
+
         [] ->
           []
       end
@@ -183,8 +193,8 @@ defmodule Reoxt.Privacy.Boltzmann do
 
   # Check if two links are the same
   defp same_link?(link1, link2) do
-    link1.input_indices == link2.input_indices and 
-    link1.output_indices == link2.output_indices
+    link1.input_indices == link2.input_indices and
+      link1.output_indices == link2.output_indices
   end
 
   # Classify the transaction type based on structure and entropy
@@ -192,28 +202,28 @@ defmodule Reoxt.Privacy.Boltzmann do
     cond do
       input_count == 1 and output_count == 1 ->
         "simple_send"
-      
+
       input_count == 1 and output_count == 2 and combinations == 1 ->
         "basic_payment"
-      
+
       input_count == 1 and output_count > 2 ->
         "amount_split"
-      
+
       input_count > 1 and output_count == 1 ->
         "consolidation"
-      
+
       combinations == 1 ->
         "unambiguous"
-      
+
       combinations == 2 ->
         "ambiguous_low"
-      
+
       combinations > 2 and combinations <= 10 ->
         "ambiguous_medium"
-      
+
       combinations > 10 ->
         "ambiguous_high"
-      
+
       true ->
         "complex"
     end
@@ -228,6 +238,7 @@ defmodule Reoxt.Privacy.Boltzmann do
       case calculate_entropy(transaction) do
         {:ok, analysis} ->
           {transaction.txid, analysis}
+
         {:error, reason} ->
           {transaction.txid, %{error: reason}}
       end
@@ -240,7 +251,7 @@ defmodule Reoxt.Privacy.Boltzmann do
   """
   def entropy_statistics(entropy_values) do
     valid_entropies = Enum.reject(entropy_values, &is_nil/1)
-    
+
     if length(valid_entropies) > 0 do
       %{
         count: length(valid_entropies),
@@ -261,10 +272,11 @@ defmodule Reoxt.Privacy.Boltzmann do
   end
 
   defp calculate_median([]), do: nil
+
   defp calculate_median(values) do
     sorted = Enum.sort(values)
     length = length(sorted)
-    
+
     if rem(length, 2) == 0 do
       middle_right = div(length, 2)
       middle_left = middle_right - 1
