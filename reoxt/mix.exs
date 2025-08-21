@@ -65,7 +65,7 @@ defmodule Reoxt.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:gold, path: "/home/base/code/gold"},
+      {:gold, github: "jurraca/gold"},
 
       # dev
       {:tidewave, "~> 0.3.0", only: :dev},
