@@ -6,6 +6,8 @@
   basePackages = with pkgs; [
     elixir
     hex
+    tailwindcss
+    esbuild
   ];
 in
   pkgs.mkShell {

@@ -41,10 +41,15 @@
 	    # uncomment the following line to include mixNixDeps
             inherit mixNixDeps;
 
-	    # Add inputs to the build if you need to
-            buildInputs = [ pkgs.elixir ];
-          };
-      });
+          buildInputs = [pkgs.elixir pkgs.esbuild pkgs.tailwindcss];
+
+          # Explicitly declare tailwind and esbuild binary paths (don't let Mix fetch them)
+          preConfigure = ''
+            substituteInPlace config/config.exs \
+              --replace "config :tailwind," "config :tailwind, path: \"${pkgs.tailwindcss}/bin/tailwindcss\","\
+              --replace "config :esbuild," "config :esbuild, path: \"${pkgs.esbuild}/bin/esbuild\", "
+          '';
+      };});
 
     devShells = forAllSystems (system: let
       pkgs = nixpkgsFor system;
